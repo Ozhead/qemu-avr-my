@@ -1,0 +1,1 @@
+common-obj-$(CONFIG_AVR_GPIO) += avr_gpio.o

@@ -7,6 +7,7 @@ devices-dirs-y += audio/
 devices-dirs-y += block/
 devices-dirs-y += bt/
 devices-dirs-y += char/
+devices-dirs-y += ports/
 devices-dirs-y += cpu/
 devices-dirs-y += display/
 devices-dirs-y += dma/

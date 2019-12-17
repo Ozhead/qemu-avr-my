@@ -4,3 +4,4 @@ config AVR_SAMPLE
     select AVR_USART
     select AVR_MASK
     select UNIMP
+    select AVR_GPIO

@@ -47,11 +47,16 @@
 #include "include/hw/char/avr_usart.h"
 #include "include/hw/timer/avr_timer16.h"
 #include "include/hw/misc/avr_mask.h"
+#include "include/hw/ports/avr_gpio.h"
 #include "elf.h"
 #include "hw/misc/unimp.h"
 
-#define SIZE_FLASH 0x00040000
-#define SIZE_SRAM 0x00002000
+//#define SIZE_FLASH 0x00040000
+//#define SIZE_SRAM 0x00002000
+
+// WURDE HIER KORREKT ANGEPASST; SEITDEM FUNKTIONIERT ES AUCH AAAAA
+#define SIZE_FLASH 0x00020000
+#define SIZE_SRAM 0x00004000
 /*
  * Size of additional "external" memory, as if the AVR were configured to use
  * an external RAM chip.
@@ -67,6 +72,7 @@
 #define TIMER1_BASE 0x80
 #define TIMER1_IMSK_BASE 0x6f
 #define TIMER1_IFR_BASE 0x36
+#define PORTA_BASE 0x20
 
 /* Interrupt numbers used by peripherals */
 #define USART_RXC_IRQ 24
@@ -106,6 +112,8 @@ typedef struct {
     AVRUsartState *usart0;
     AVRTimer16State *timer1;
     AVRMaskState *prr[2];
+	
+	AVRGpioState *porta;
 } SampleMachineState;
 
 #define TYPE_SAMPLE_MACHINE MACHINE_TYPE_NAME("sample")
@@ -128,6 +136,7 @@ static void sample_init(MachineState *machine)
     uint32_t flags;
     int bytes_loaded;
     SysBusDevice *busdev;
+	//SysBusDevice *busdev1;
     DeviceState *cpudev;
 
     system_memory = get_system_memory();
@@ -158,47 +167,63 @@ static void sample_init(MachineState *machine)
             &error_fatal);
     memory_region_add_subregion(system_memory, OFFSET_CODE, sms->flash);
 
+
+	//Changing to Atmega1284p. Highest register is 0xFF!
     /* following are atmel2560 device */
-    create_unimplemented_device("usart 3", OFFSET_DATA + 0x0130, 0x0007);
-    create_unimplemented_device("timer-counter-16bit 5",
-            OFFSET_DATA + 0x0120, 0x000e);
-    create_unimplemented_device("gpio L", OFFSET_DATA + 0x0109, 0x0003);
-    create_unimplemented_device("gpio K", OFFSET_DATA + 0x0106, 0x0003);
-    create_unimplemented_device("gpio J", OFFSET_DATA + 0x0103, 0x0003);
-    create_unimplemented_device("gpio H", OFFSET_DATA + 0x0100, 0x0003);
-    create_unimplemented_device("usart 2", OFFSET_DATA + 0x00d0, 0x0007);
+    //create_unimplemented_device("usart 3", OFFSET_DATA + 0x0130, 0x0007);
+    //create_unimplemented_device("timer-counter-16bit 5",
+     //       OFFSET_DATA + 0x0120, 0x000e);
+   // create_unimplemented_device("gpio L", OFFSET_DATA + 0x0109, 0x0003);
+   // create_unimplemented_device("gpio K", OFFSET_DATA + 0x0106, 0x0003);
+   // create_unimplemented_device("gpio J", OFFSET_DATA + 0x0103, 0x0003);
+    //create_unimplemented_device("gpio H", OFFSET_DATA + 0x0100, 0x0003);
+    //create_unimplemented_device("usart 2", OFFSET_DATA + 0x00d0, 0x0007);
     create_unimplemented_device("usart 1", OFFSET_DATA + 0x00c8, 0x0007);
     create_unimplemented_device("usart 0", OFFSET_DATA + 0x00c0, 0x0007);
-    create_unimplemented_device("twi", OFFSET_DATA + 0x00b8, 0x0006);
+    create_unimplemented_device("twi", OFFSET_DATA + 0x00b8, 0x0006);					// 2-wire-interface
+	
     create_unimplemented_device("timer-counter-async-8bit 2",
             OFFSET_DATA + 0x00b0, 0x0007);
-    create_unimplemented_device("timer-counter-16bit 4",
-            OFFSET_DATA + 0x00a0, 0x000e);
+			
+    /*create_unimplemented_device("timer-counter-16bit 4",			not existant in atmega1284p
+            OFFSET_DATA + 0x00a0, 0x000e);*/
+			
     create_unimplemented_device("timer-counter-16bit 3",
             OFFSET_DATA + 0x0090, 0x000e);
     create_unimplemented_device("timer-counter-16bit 1",
             OFFSET_DATA + 0x0080, 0x000e);
+			
     create_unimplemented_device("ac / adc",
             OFFSET_DATA + 0x0078, 0x0008);
-    create_unimplemented_device("ext-mem-iface",
-            OFFSET_DATA + 0x0074, 0x0002);
+			
+    /*create_unimplemented_device("ext-mem-iface",
+            OFFSET_DATA + 0x0074, 0x0002);*/
+			
     create_unimplemented_device("int-controller",
             OFFSET_DATA + 0x0068, 0x000c);
+			
     create_unimplemented_device("sys",
             OFFSET_DATA + 0x0060, 0x0007);
+			
     create_unimplemented_device("spi",
             OFFSET_DATA + 0x004c, 0x0003);
-    create_unimplemented_device("ext-mem-iface",
+			
+    create_unimplemented_device("ext-mem-iface",		//GPIO
             OFFSET_DATA + 0x004a, 0x0002);
+			
     create_unimplemented_device("timer-counter-pwm-8bit 0",
             OFFSET_DATA + 0x0043, 0x0006);
-    create_unimplemented_device("ext-mem-iface",
+			
+    create_unimplemented_device("ext-mem-iface",		//GPIO
             OFFSET_DATA + 0x003e, 0x0005);
+			
     create_unimplemented_device("int-controller",
             OFFSET_DATA + 0x0035, 0x0009);
-    create_unimplemented_device("gpio G", OFFSET_DATA + 0x0032, 0x0003);
-    create_unimplemented_device("gpio F", OFFSET_DATA + 0x002f, 0x0003);
-    create_unimplemented_device("gpio E", OFFSET_DATA + 0x002c, 0x0003);
+			
+			
+    //create_unimplemented_device("gpio G", OFFSET_DATA + 0x0032, 0x0003);
+    //create_unimplemented_device("gpio F", OFFSET_DATA + 0x002f, 0x0003);
+    //create_unimplemented_device("gpio E", OFFSET_DATA + 0x002c, 0x0003);
     create_unimplemented_device("gpio D", OFFSET_DATA + 0x0029, 0x0003);
     create_unimplemented_device("gpio C", OFFSET_DATA + 0x0026, 0x0003);
     create_unimplemented_device("gpio B", OFFSET_DATA + 0x0023, 0x0003);
@@ -221,6 +246,17 @@ static void sample_init(MachineState *machine)
     object_property_set_bool(OBJECT(sms->usart0), true, "realized",
             &error_fatal);
     sysbus_mmio_map(busdev, 0, OFFSET_DATA + USART_BASE);
+	
+	
+	/*	GPIO PORTA	*/
+	sms->porta = AVR_GPIO(object_new(TYPE_AVR_GPIO));
+	busdev = SYS_BUS_DEVICE(sms->porta);
+	qdev_prop_set_chr(DEVICE(sms->porta), "chardev", serial_hd(1));
+	object_property_set_bool(OBJECT(sms->porta), true, "realized",
+			&error_fatal);
+	sysbus_mmio_map(busdev, 0, OFFSET_DATA + PORTA_BASE);
+
+
     /*
      * These IRQ numbers don't match the datasheet because we're counting from
      * zero and not including reset.
@@ -273,7 +309,7 @@ static void sample_class_init(ObjectClass *oc, void *data)
     mc->default_cpus = 1;
     mc->min_cpus = mc->default_cpus;
     mc->max_cpus = mc->default_cpus;
-    mc->default_cpu_type = "avr6-avr-cpu"; /* ATmega2560. */
+    mc->default_cpu_type = "avr51-avr-cpu"; /* ATmega2560. */
     mc->is_default = 1;
 }
 
