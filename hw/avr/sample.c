@@ -169,24 +169,12 @@ static void sample_init(MachineState *machine)
 
 
 	//Changing to Atmega1284p. Highest register is 0xFF!
-    /* following are atmel2560 device */
-    //create_unimplemented_device("usart 3", OFFSET_DATA + 0x0130, 0x0007);
-    //create_unimplemented_device("timer-counter-16bit 5",
-     //       OFFSET_DATA + 0x0120, 0x000e);
-   // create_unimplemented_device("gpio L", OFFSET_DATA + 0x0109, 0x0003);
-   // create_unimplemented_device("gpio K", OFFSET_DATA + 0x0106, 0x0003);
-   // create_unimplemented_device("gpio J", OFFSET_DATA + 0x0103, 0x0003);
-    //create_unimplemented_device("gpio H", OFFSET_DATA + 0x0100, 0x0003);
-    //create_unimplemented_device("usart 2", OFFSET_DATA + 0x00d0, 0x0007);
     create_unimplemented_device("usart 1", OFFSET_DATA + 0x00c8, 0x0007);
     create_unimplemented_device("usart 0", OFFSET_DATA + 0x00c0, 0x0007);
     create_unimplemented_device("twi", OFFSET_DATA + 0x00b8, 0x0006);					// 2-wire-interface
 	
     create_unimplemented_device("timer-counter-async-8bit 2",
             OFFSET_DATA + 0x00b0, 0x0007);
-			
-    /*create_unimplemented_device("timer-counter-16bit 4",			not existant in atmega1284p
-            OFFSET_DATA + 0x00a0, 0x000e);*/
 			
     create_unimplemented_device("timer-counter-16bit 3",
             OFFSET_DATA + 0x0090, 0x000e);
@@ -195,9 +183,6 @@ static void sample_init(MachineState *machine)
 			
     create_unimplemented_device("ac / adc",
             OFFSET_DATA + 0x0078, 0x0008);
-			
-    /*create_unimplemented_device("ext-mem-iface",
-            OFFSET_DATA + 0x0074, 0x0002);*/
 			
     create_unimplemented_device("int-controller",
             OFFSET_DATA + 0x0068, 0x000c);
@@ -220,10 +205,6 @@ static void sample_init(MachineState *machine)
     create_unimplemented_device("int-controller",
             OFFSET_DATA + 0x0035, 0x0009);
 			
-			
-    //create_unimplemented_device("gpio G", OFFSET_DATA + 0x0032, 0x0003);
-    //create_unimplemented_device("gpio F", OFFSET_DATA + 0x002f, 0x0003);
-    //create_unimplemented_device("gpio E", OFFSET_DATA + 0x002c, 0x0003);
     create_unimplemented_device("gpio D", OFFSET_DATA + 0x0029, 0x0003);
     create_unimplemented_device("gpio C", OFFSET_DATA + 0x0026, 0x0003);
     create_unimplemented_device("gpio B", OFFSET_DATA + 0x0023, 0x0003);
@@ -304,12 +285,12 @@ static void sample_class_init(ObjectClass *oc, void *data)
 {
     MachineClass *mc = MACHINE_CLASS(oc);
 
-    mc->desc = "AVR sample/example board (ATmega2560)";
+    mc->desc = "ATMega1284p";
     mc->init = sample_init;
     mc->default_cpus = 1;
     mc->min_cpus = mc->default_cpus;
     mc->max_cpus = mc->default_cpus;
-    mc->default_cpu_type = "avr51-avr-cpu"; /* ATmega2560. */
+    mc->default_cpu_type = "avr51-avr-cpu"; /* ATmega1284p. */
     mc->is_default = 1;
 }
 

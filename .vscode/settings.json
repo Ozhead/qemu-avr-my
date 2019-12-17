@@ -62,6 +62,7 @@
         "trace-**": true,
         "configure": true,
         "**/qga": true
-    }
+    },
+    "C_Cpp.errorSquiggles": "Disabled"
     
 }
