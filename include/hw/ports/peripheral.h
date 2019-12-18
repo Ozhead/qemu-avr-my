@@ -50,9 +50,8 @@ typedef void (*Write)(void *opaque, hwaddr addr, uint64_t value, unsigned int si
 
 typedef struct AVRPeripheralClass 
 {
-    ObjectClass parent_class;
+    SysBusDevice parent_class;
 
-    // virtual members!
     CanReceive can_receive;
     Receive receive;
     Read read;

@@ -88,6 +88,8 @@ static void avr_peripheral_class_init(ObjectClass *klass, void *data)
     pc->read = avr_peripheral_read;
     pc->write = avr_peripheral_write;
     pc->receive = avr_peripheral_receive;
+
+    printf("Peripheral class initiated\n");
 }
 
 static const TypeInfo avr_peripheral_info = {
@@ -96,6 +98,7 @@ static const TypeInfo avr_peripheral_info = {
     .instance_size = sizeof(AVRPeripheralState),
     .instance_init = avr_peripheral_init,
     .class_init    = avr_peripheral_class_init,
+    .class_size    = sizeof(AVRPeripheralClass)
 };
 
 static void avr_peripheral_register_types(void)

@@ -6,3 +6,5 @@ config AVR_PERIPHERAL
 
 config AVR_PORT
     bool
+
+config AVR_ADC
