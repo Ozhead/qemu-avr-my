@@ -1,2 +1,5 @@
 config AVR_GPIO
     bool
+
+config AVR_GPIO
+    bool
