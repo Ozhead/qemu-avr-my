@@ -1,5 +1,8 @@
 config AVR_GPIO
     bool
 
-config AVR_GPIO
+config AVR_PERIPHERAL
+    bool
+
+config AVR_PORT
     bool
