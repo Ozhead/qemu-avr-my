@@ -37,17 +37,12 @@ static void avr_peripheral_write(void *opaque, hwaddr addr, uint64_t value,
 	printf("peripheral_write\n");
 }
 
-static const MemoryRegionOps avr_peripheral_ops = {
+/*static const MemoryRegionOps avr_peripheral_ops = {
     .read = avr_peripheral_read,
     .write = avr_peripheral_write,
     .endianness = DEVICE_NATIVE_ENDIAN,
     .impl = {.min_access_size = 1, .max_access_size = 1}
-};
-
-static Property avr_peripheral_properties[] = {
-    DEFINE_PROP_CHR("chardev", AVRPeripheralState, chr),
-    DEFINE_PROP_END_OF_LIST(),
-};
+};*/
 
 static void avr_peripheral_pr(void *opaque, int irq, int level)
 {
@@ -58,16 +53,16 @@ static void avr_peripheral_pr(void *opaque, int irq, int level)
 static void avr_peripheral_init(Object *obj)
 {
     AVRPeripheralState *s = AVR_PERIPHERAL(obj);
-    sysbus_init_irq(SYS_BUS_DEVICE(obj), &s->rxc_irq);
+    /*sysbus_init_irq(SYS_BUS_DEVICE(obj), &s->rxc_irq);
     sysbus_init_irq(SYS_BUS_DEVICE(obj), &s->dre_irq);
-    sysbus_init_irq(SYS_BUS_DEVICE(obj), &s->txc_irq);
-    memory_region_init_io(&s->mmio, obj, &avr_peripheral_ops, s, TYPE_AVR_PERIPHERAL, 8);
+    sysbus_init_irq(SYS_BUS_DEVICE(obj), &s->txc_irq);*/
     sysbus_init_mmio(SYS_BUS_DEVICE(obj), &s->mmio);
     qdev_init_gpio_in(DEVICE(s), avr_peripheral_pr, 1);
     //s->enabled = true;
+    printf("AVR Peripheral object init\n");
 }
 
-static void avr_peripheral_realize(DeviceState *dev, Error **errp)
+/*static void avr_peripheral_realize(DeviceState *dev, Error **errp)
 {
     printf("Peripheral realize!\n");
     AVRPeripheralState *s = AVR_PERIPHERAL(dev);
@@ -75,7 +70,7 @@ static void avr_peripheral_realize(DeviceState *dev, Error **errp)
                              avr_peripheral_receive, NULL, NULL,
                              s, NULL, true);
     avr_peripheral_reset(dev);
-}
+}*/
 
 static void avr_peripheral_class_init(ObjectClass *klass, void *data)
 {
@@ -83,15 +78,14 @@ static void avr_peripheral_class_init(ObjectClass *klass, void *data)
     AVRPeripheralClass * pc = AVR_PERIPHERAL_CLASS(klass);
 
     dc->reset = avr_peripheral_reset;
-    dc->props = avr_peripheral_properties;
-    dc->realize = avr_peripheral_realize;
+    //dc->realize = avr_peripheral_realize;
 
     pc->can_receive = avr_peripheral_can_receive;
     pc->read = avr_peripheral_read;
     pc->write = avr_peripheral_write;
     pc->receive = avr_peripheral_receive;
 
-    printf("Peripheral class initiated\n");
+    //printf("Peripheral class initiated\n");
 }
 
 static const TypeInfo avr_peripheral_info = {
@@ -106,7 +100,7 @@ static const TypeInfo avr_peripheral_info = {
 
 static void avr_peripheral_register_types(void)
 {
-	printf("Init Peripheral Types!\n");
+	//printf("Init Peripheral Types!\n");
     type_register_static(&avr_peripheral_info);
 }
 

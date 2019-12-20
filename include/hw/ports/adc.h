@@ -8,6 +8,8 @@
 
 #define TYPE_AVR_ADC "avr-adc"
 
+#define AVR_ADC(obj) \
+    OBJECT_CHECK(AVRPeripheralState, (obj), TYPE_AVR_ADC)
 #define AVR_ADC_GET_CLASS(obj) \
     OBJECT_GET_CLASS(AVRADCClass, obj, TYPE_AVR_ADC)
 #define AVR_ADC_CLASS(klass) \

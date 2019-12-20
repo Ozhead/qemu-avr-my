@@ -35,12 +35,6 @@ static void avr_adc_write(void *opaque, hwaddr addr, uint64_t value,
 	printf("adc_write\n");
 }
 
-/*static const MemoryRegionOps avr_adc_ops = {
-    .read = avr_adc_read,
-    .write = avr_adc_write,
-    .endianness = DEVICE_NATIVE_ENDIAN,
-    .impl = {.min_access_size = 1, .max_access_size = 1}
-};*/
 
 //static Property avr_adc_properties[] = {
     //DEFINE_PROP_CHR("chardev", AVRPeripheralState, chr),
@@ -94,21 +88,45 @@ static void avr_adc_class_init(ObjectClass *klass, void *data)
     pc->write = avr_adc_write;
     pc->receive = avr_adc_receive;
 
-    printf("ADC class initiated\n");
+    //printf("ADC class initiated\n");
+}
+
+static const MemoryRegionOps avr_adc_ops = {
+    .read = avr_adc_read,
+    .write = avr_adc_write,
+    .endianness = DEVICE_NATIVE_ENDIAN,
+    .impl = {.min_access_size = 1, .max_access_size = 1}
+};
+
+static void avr_adc_init(Object *obj)
+{
+    AVRPeripheralState *s = AVR_PERIPHERAL(obj);
+    memory_region_init_io(&s->mmio, obj, &avr_adc_ops, s, TYPE_AVR_ADC, 8);
+
+    /*sysbus_init_irq(SYS_BUS_DEVICE(obj), &s->rxc_irq);
+    sysbus_init_irq(SYS_BUS_DEVICE(obj), &s->dre_irq);
+    sysbus_init_irq(SYS_BUS_DEVICE(obj), &s->txc_irq);
+    memory_region_init_io(&s->mmio, obj, &avr_peripheral_ops, s, TYPE_AVR_PERIPHERAL, 8);
+    sysbus_init_mmio(SYS_BUS_DEVICE(obj), &s->mmio);
+    qdev_init_gpio_in(DEVICE(s), avr_peripheral_pr, 1);*/
+    //s->enabled = true;
+    printf("AVR ADC object init\n");
 }
 
 static const TypeInfo avr_adc_info = {
     .name          = TYPE_AVR_ADC,
     .parent        = TYPE_AVR_PERIPHERAL,
     .class_init    = avr_adc_class_init,
-    .class_size    = sizeof(AVRADCClass)
+    .class_size    = sizeof(AVRADCClass),
+    .instance_size = sizeof(AVRPeripheralState),
+    .instance_init = avr_adc_init
 };
 
 static void avr_adc_register_types(void)
 {
-	printf("Init ADC Types!\n");
+	//printf("Init ADC Types!\n");
 
-    printf("%lu <= %lu\n", sizeof(AVRPeripheralClass), sizeof(AVRADCClass));
+    //printf("%lu <= %lu\n", sizeof(AVRPeripheralClass), sizeof(AVRADCClass));
     type_register_static(&avr_adc_info);
 }
 

@@ -48,6 +48,7 @@
 #include "include/hw/timer/avr_timer16.h"
 #include "include/hw/misc/avr_mask.h"
 #include "include/hw/ports/avr_gpio.h"
+#include "include/hw/ports/avr_port.h"
 #include "elf.h"
 #include "hw/misc/unimp.h"
 #include "include/hw/ports/adc.h"
@@ -74,6 +75,7 @@
 #define TIMER1_IMSK_BASE 0x6f
 #define TIMER1_IFR_BASE 0x36
 #define PORTA_BASE 0x20
+#define ADC_BASE
 
 /* Interrupt numbers used by peripherals */
 #define USART_RXC_IRQ 24
@@ -116,6 +118,7 @@ typedef struct {
 	
 	//AVRGpioState *porta;
     AVRPeripheralState *adc;
+    AVRPortState * porta;
 } SampleMachineState;
 
 #define TYPE_SAMPLE_MACHINE MACHINE_TYPE_NAME("sample")
@@ -230,23 +233,6 @@ static void sample_init(MachineState *machine)
             &error_fatal);
     sysbus_mmio_map(busdev, 0, OFFSET_DATA + USART_BASE);
 	
-	
-	/*	GPIO PORTA	*/
-	/*sms->porta = AVR_GPIO(object_new(TYPE_AVR_GPIO));
-	busdev = SYS_BUS_DEVICE(sms->porta);
-	qdev_prop_set_chr(DEVICE(sms->porta), "chardev", serial_hd(1));
-	object_property_set_bool(OBJECT(sms->porta), true, "realized",
-			&error_fatal);
-	sysbus_mmio_map(busdev, 0, OFFSET_DATA + PORTA_BASE);*/
-    sms->adc = AVR_PERIPHERAL(object_new(TYPE_AVR_ADC));
-    AVRADCClass *dc = AVR_ADC_GET_CLASS(sms->adc);
-    AVRPeripheralClass *pc = AVR_PERIPHERAL_GET_CLASS(sms->adc);
-
-    printf("Calling can_receive:\n");
-    dc->parent_can_receive(NULL);
-    pc->can_receive(NULL);
-
-
     /*
      * These IRQ numbers don't match the datasheet because we're counting from
      * zero and not including reset.
@@ -256,6 +242,32 @@ static void sample_init(MachineState *machine)
     sysbus_connect_irq(busdev, 2, qdev_get_gpio_in(cpudev, USART_TXC_IRQ));
     sysbus_connect_irq(SYS_BUS_DEVICE(sms->prr[1]), PRR1_BIT_PRUSART1,
             qdev_get_gpio_in(DEVICE(sms->usart0), 0));
+	
+	/*	GPIO PORTA	*/
+	/*sms->porta = AVR_GPIO(object_new(TYPE_AVR_GPIO));
+	busdev = SYS_BUS_DEVICE(sms->porta);
+	qdev_prop_set_chr(DEVICE(sms->porta), "chardev", serial_hd(1));
+	object_property_set_bool(OBJECT(sms->porta), true, "realized",
+			&error_fatal);
+	sysbus_mmio_map(busdev, 0, OFFSET_DATA + PORTA_BASE);*/
+    sms->porta = AVR_PORT(object_new(TYPE_AVR_PORT));
+    busdev = SYS_BUS_DEVICE(sms->porta);
+    sysbus_mmio_map(busdev, 0, OFFSET_DATA + PORTA_BASE);
+    qdev_prop_set_chr(DEVICE(sms->porta), "chardev", serial_hd(1));
+	object_property_set_bool(OBJECT(sms->porta), true, "realized",
+			&error_fatal);
+
+    // PORT A ADC!
+    sms->adc = AVR_ADC(object_new(TYPE_AVR_ADC));
+    //AVRADCClass *dc = AVR_ADC_GET_CLASS(sms->adc);
+    AVRPeripheralClass *pc = AVR_PERIPHERAL_GET_CLASS(sms->adc);
+    add_peripheral_to_port(sms->porta, pc);
+
+    busdev = SYS_BUS_DEVICE(sms->adc);
+    sysbus_mmio_map(busdev, 0, OFFSET_DATA + 0x78);
+    object_property_set_bool(OBJECT(sms->adc), true, "realized",
+        &error_fatal);
+    printf("Port A initiated\n");
 
     /* Timer 1 built-in periphal */
     sms->timer1 = AVR_TIMER16(object_new(TYPE_AVR_TIMER16));
