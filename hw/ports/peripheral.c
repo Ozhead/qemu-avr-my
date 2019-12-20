@@ -6,6 +6,7 @@
 
 static int avr_peripheral_can_receive(void *opaque)
 {
+    printf("PERIPHERAL CAN RECEIVE :(\n");
 	return 1;
 }
 
@@ -68,6 +69,7 @@ static void avr_peripheral_init(Object *obj)
 
 static void avr_peripheral_realize(DeviceState *dev, Error **errp)
 {
+    printf("Peripheral realize!\n");
     AVRPeripheralState *s = AVR_PERIPHERAL(dev);
     qemu_chr_fe_set_handlers(&s->chr, avr_peripheral_can_receive,
                              avr_peripheral_receive, NULL, NULL,
@@ -98,7 +100,8 @@ static const TypeInfo avr_peripheral_info = {
     .instance_size = sizeof(AVRPeripheralState),
     .instance_init = avr_peripheral_init,
     .class_init    = avr_peripheral_class_init,
-    .class_size    = sizeof(AVRPeripheralClass)
+    .class_size    = sizeof(AVRPeripheralClass),
+    .abstract      = true
 };
 
 static void avr_peripheral_register_types(void)

@@ -7,6 +7,7 @@
 
 static int avr_adc_can_receive(void *opaque)
 {
+    printf("ADC CAN RECEIVE JAAAAAAAAA\n");
 	return 1;
 }
 
@@ -79,9 +80,9 @@ static void avr_adc_class_init(ObjectClass *klass, void *data)
     AVRPeripheralClass *pc = AVR_PERIPHERAL_CLASS(klass);
     AVRADCClass * adc = AVR_ADC_CLASS(klass);
 
-    //dc->reset = avr_peripheral_reset;
-    //dc->props = avr_peripheral_properties;
-    //dc->realize = avr_peripheral_realize;
+    /*dc->reset = avr_peripheral_reset;
+    dc->props = avr_peripheral_properties;
+    dc->realize = avr_peripheral_realize;*/
   
     adc->parent_can_receive = pc->can_receive;
     adc->parent_receive = pc->receive;

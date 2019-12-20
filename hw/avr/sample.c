@@ -50,6 +50,7 @@
 #include "include/hw/ports/avr_gpio.h"
 #include "elf.h"
 #include "hw/misc/unimp.h"
+#include "include/hw/ports/adc.h"
 
 //#define SIZE_FLASH 0x00040000
 //#define SIZE_SRAM 0x00002000
@@ -113,7 +114,8 @@ typedef struct {
     AVRTimer16State *timer1;
     AVRMaskState *prr[2];
 	
-	AVRGpioState *porta;
+	//AVRGpioState *porta;
+    AVRPeripheralState *adc;
 } SampleMachineState;
 
 #define TYPE_SAMPLE_MACHINE MACHINE_TYPE_NAME("sample")
@@ -230,12 +232,19 @@ static void sample_init(MachineState *machine)
 	
 	
 	/*	GPIO PORTA	*/
-	sms->porta = AVR_GPIO(object_new(TYPE_AVR_GPIO));
+	/*sms->porta = AVR_GPIO(object_new(TYPE_AVR_GPIO));
 	busdev = SYS_BUS_DEVICE(sms->porta);
 	qdev_prop_set_chr(DEVICE(sms->porta), "chardev", serial_hd(1));
 	object_property_set_bool(OBJECT(sms->porta), true, "realized",
 			&error_fatal);
-	sysbus_mmio_map(busdev, 0, OFFSET_DATA + PORTA_BASE);
+	sysbus_mmio_map(busdev, 0, OFFSET_DATA + PORTA_BASE);*/
+    sms->adc = AVR_PERIPHERAL(object_new(TYPE_AVR_ADC));
+    AVRADCClass *dc = AVR_ADC_GET_CLASS(sms->adc);
+    AVRPeripheralClass *pc = AVR_PERIPHERAL_GET_CLASS(sms->adc);
+
+    printf("Calling can_receive:\n");
+    dc->parent_can_receive(NULL);
+    pc->can_receive(NULL);
 
 
     /*
