@@ -32,10 +32,6 @@ static void avr_port_receive(void *opaque, const uint8_t *buffer, int size)
 	{
 		printf("Caution: You are trying to write data in output ports!\n");
 	}
-
-    /*if (usart->csrb & USART_CSRB_RXCIE) {
-        qemu_set_irq(usart->rxc_irq, 1);
-    }*/
 }
 
 static void avr_port_reset(DeviceState *dev)
@@ -45,10 +41,6 @@ static void avr_port_reset(DeviceState *dev)
 	port->ddr = 0;
 	port->input_values = 0;
 	port->output_values = 0;
-
-    //qemu_set_irq(port->rxc_irq, 0);
-   // qemu_set_irq(port->txc_irq, 0);
-    //qemu_set_irq(port->dre_irq, 0);
 }
 
 static uint64_t avr_port_read(void *opaque, hwaddr addr, unsigned int size)
@@ -63,8 +55,6 @@ static void avr_port_write(void *opaque, hwaddr addr, uint64_t value,
                                 unsigned int size)
 {
 	printf("Port base write\n");
-	
-	//printf("addr = %i\n", (int)addr);
 }
 
 static const MemoryRegionOps avr_port_ops = {
@@ -93,9 +83,6 @@ static void avr_port_pr(void *opaque, int irq, int level)
 static void avr_port_init(Object *obj)
 {
     AVRPortState *s = AVR_PORT(obj);
-    //sysbus_init_irq(SYS_BUS_DEVICE(obj), &s->rxc_irq);
-    //sysbus_init_irq(SYS_BUS_DEVICE(obj), &s->dre_irq);
-    //sysbus_init_irq(SYS_BUS_DEVICE(obj), &s->txc_irq);
     memory_region_init_io(&s->mmio, obj, &avr_port_ops, s, TYPE_AVR_PORT, 8);
     sysbus_init_mmio(SYS_BUS_DEVICE(obj), &s->mmio);
     qdev_init_gpio_in(DEVICE(s), avr_port_pr, 1);
@@ -132,7 +119,6 @@ static const TypeInfo avr_port_info = {
 
 static void avr_port_register_types(void)
 {
-	//printf("Init GPIOTypes!\n");
     type_register_static(&avr_port_info);
 }
 
