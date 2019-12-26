@@ -37,11 +37,7 @@ static void adc_convert(void * opaque)
             vref = 2560;
     }
 
-    //uint16_t x = (uint16_t)(val * 1000 * 1024 / vref);
-    //printf("Converting stuff %f %f %d\n", val, vref, x);
-    val = -1;
     double x = val * 1000 * 1024 / vref;
-    //printf("%f\n", x);
     uint16_t final;
 
     if(x < 0)
@@ -86,11 +82,10 @@ static int avr_adc_is_active(void *opaque, uint32_t pinno)
         // TODO: Add further possibilites from datasheet!
         if((p->admux & 0b00011111) == pinno)
         {
-            printf("Scheint ok zu sein\n");
             return 1;
         }
     }
-    printf("Scheint 0 zu sein\n");
+
     return 0;
 }
 
@@ -108,9 +103,8 @@ static void avr_adc_receive(void *opaque, const uint8_t *buffer, int msgid, int 
 
     if(avr_adc_is_active(opaque, pinno))
     {
-        printf("We should be setting it now correctly!");
+        //printf("We should be setting it now correctly!");
         adc_convert(opaque);
-        // get correct VRef
     }
 }
 

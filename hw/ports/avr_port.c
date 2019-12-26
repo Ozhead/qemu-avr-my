@@ -41,24 +41,8 @@ static void avr_port_receive(void *opaque, const uint8_t *buffer, int size)
         ptr++;
 
         //if(port->periphs_in_pin[pin_id]->is_active(port->states_in_pin[pin_id], pin_id))
-        if(msg_id)
+        if(msg_id)  //not zero equals not digio
         {
-            AVRPeripheralState * pState = NULL;
-            for(int i = 0; i < port->peripheral_counter; i++)
-            {
-                if(port->periphs[i] == port->periphs_in_pin[pin_id])
-                {
-                    pState = port->states[i];
-                    break;
-                }
-            }
-
-            if(pState == NULL)
-            {
-                printf("FATAL ERROR: Can not find a state to given peripheral class\n");
-                assert(false);
-            }
-
             port->periphs_in_pin[pin_id]->receive(port->states_in_pin[pin_id], buffer + ptr, peripheral_msg_lengths[msg_id], pin_id);
         }
         else
@@ -74,9 +58,6 @@ static void avr_port_receive(void *opaque, const uint8_t *buffer, int size)
         
         ptr += peripheral_msg_lengths[msg_id]; //advance the current pointer
     }
-	//uint8_t update_val = buffer[0] & ~gpio->ddr;
-	// only set those bits that are set as input by DDR; for this, DDR is used as mask (inverted!)
-	//gpio->input_values = (gpio->input_values & gpio->ddr) | (update_val & ~gpio->ddr);
 }
 
 static void avr_port_reset(DeviceState *dev)
@@ -121,10 +102,11 @@ static void avr_port_send_data(void *opaque)
         if((port->ddr & pin_mask) == 0)
             continue;
 
-        if(port->periphs_in_pin[i] != NULL) // DigIO
+        // is it defined?
+        if(port->periphs_in_pin[i] != NULL)
         {
             printf("Checking pin %d\n", i);
-            if(!port->periphs_in_pin[i]->is_active(port->states_in_pin[i], i))
+            if(!port->periphs_in_pin[i]->is_active(port->states_in_pin[i], i))      //not active => this is a GPIO pin!
             {
                 printf("OK\n");
                 uint8_t val = (i << 5) & 0b11100000;    // write Pin ID, set the rest to zero!
@@ -136,18 +118,19 @@ static void avr_port_send_data(void *opaque)
             }
             else
             {
+                printf("Sending peripheral data stuff...");
                 assert(false);
             }
         }
         else
         {
             assert(false);
-            //TODO andere Peripherien!
+            //TODO: Keine Peripherie definiert => fallback zu digio
         }
         
     }
 
-    qemu_chr_fe_write_all(&port->chr, data, data_ptr);
+    qemu_chr_fe_write_all(&port->chr, data, data_ptr);  //send
 }
 
 static void avr_port_write(void *opaque, hwaddr addr, uint64_t value,
@@ -181,7 +164,7 @@ static void avr_port_write(void *opaque, hwaddr addr, uint64_t value,
 				gpio->output_values = data;
 				qemu_chr_fe_write_all(&gpio->chr, &data, 1);
 			}*/
-            avr_port_send_data(port);
+            avr_port_send_data(port);   // trigger a sending of all data!
 		}
 		break;
 		case DDR:
