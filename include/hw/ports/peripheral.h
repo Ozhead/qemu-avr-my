@@ -5,6 +5,9 @@
 #include "chardev/char-fe.h"
 #include "hw/hw.h"
 
+#define NUM_PINS 8
+#define VCC 5.0
+
 #define TYPE_AVR_PERIPHERAL "avr-peripheral"
 #define AVR_PERIPHERAL(obj) \
     OBJECT_CHECK(AVRPeripheralState, (obj), TYPE_AVR_PERIPHERAL)
@@ -37,6 +40,8 @@ typedef struct
     uint8_t adcsr;
     uint8_t admux;
     uint16_t adc;   // 10 bit => 2 byte
+
+    double adc_voltages[NUM_PINS];
     /* ADC END */
 
 } AVRPeripheralState;
@@ -48,9 +53,10 @@ typedef struct
     write
 */
 typedef int (*CanReceive)(void *opaque);
-typedef void (*Receive)(void *opaque, const uint8_t *buffer, int size);
+typedef void (*Receive)(void *opaque, const uint8_t *buffer, int size, int pinno);
 typedef uint64_t (*Read)(void *opaque, hwaddr addr, unsigned int size);
 typedef void (*Write)(void *opaque, hwaddr addr, uint64_t value, unsigned int size);
+typedef int (*IsActive)(void * opaque, uint32_t pinno);
 
 #define AVR_PERIPHERAL_GET_CLASS(obj) \
     OBJECT_GET_CLASS(AVRPeripheralClass, obj, TYPE_AVR_PERIPHERAL)
@@ -65,6 +71,7 @@ typedef struct AVRPeripheralClass
     Receive receive;
     Read read;
     Write write;
+    IsActive is_active;
 } AVRPeripheralClass;
 
 #endif

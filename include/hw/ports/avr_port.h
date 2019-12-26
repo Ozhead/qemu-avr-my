@@ -11,7 +11,6 @@
 #define DDR 0x01
 #define PORT 0x02
 
-#define NUM_PINS 8
 typedef void (*PeripheralFunc)(Object* obj, AVRPeripheralClass * P);
 
 #define TYPE_AVR_PORT "avr-port"

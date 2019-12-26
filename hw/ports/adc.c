@@ -5,7 +5,64 @@
 #include "hw/qdev-properties.h"
 
 #define ADCEN (1 << 7)
+#define ADLAR (1 << 5)
 
+static void adc_convert(void * opaque)
+{       
+    AVRPeripheralState *p = opaque;
+    double val, vref;
+    // get the correct input value...
+    uint8_t curr_pin = p->admux & 0b00011111;
+    if(curr_pin < 8)
+    {
+        val = p->adc_voltages[curr_pin];
+    }
+    else    // todo different conversions!
+        assert(false);
+
+    uint8_t vref_selected = p->admux >> 6;
+    switch(vref_selected)
+    {
+        case 0:
+            printf("AREF is not enabled!");
+            assert(false);
+        case 1:
+            // AVCC which must be ~ VCC
+            vref = VCC * 1000;
+            break;
+        case 2:
+            vref = 1100;
+            break;
+        case 3:
+            vref = 2560;
+    }
+
+    //uint16_t x = (uint16_t)(val * 1000 * 1024 / vref);
+    //printf("Converting stuff %f %f %d\n", val, vref, x);
+    val = -1;
+    double x = val * 1000 * 1024 / vref;
+    printf("%f\n", x);
+    uint16_t final;
+
+    if(x < 0)
+    {
+        x = -x;
+        final = (uint16_t)x;
+        final &= 0b0000001111111111;
+        final = (~final + 1) & 0b0000001111111111;
+    }
+    else
+    {
+        final = (uint16_t)x;
+        final &= 0b0000001111111111;
+    }
+
+    if(p->admux & ADLAR)        // left adjust
+        final = final >> 6;
+    
+    p->adc = final;     //only take lower 10 bits!
+    printf("ADC = %i\n", (int)p->adc);
+}
 
 static int avr_adc_can_receive(void *opaque)
 {
@@ -18,10 +75,38 @@ static int avr_adc_can_receive(void *opaque)
     return 0;
 }
 
-static void avr_adc_receive(void *opaque, const uint8_t *buffer, int size)
+static int avr_adc_is_active(void *opaque, uint32_t pinno)
 {
+    AVRPeripheralState *p = opaque;
+
+    if(p->adcsr & ADCEN)
+    {
+        // TODO: Add further possibilites from datasheet!
+        if((p->admux & 0b00011111) == pinno)
+            return 1;
+    }
+
+    return 0;
+}
+
+static void avr_adc_receive(void *opaque, const uint8_t *buffer, int size, int pinno)
+{
+    AVRPeripheralState *p = opaque;
 	printf("Calling avr_adc_receive\n");
+    assert(size == sizeof(double));
     // float convert to int in ADC!
+    double val;
+    memcpy(&val, buffer, sizeof(double));
+
+    printf("Recv V = %5.2fV\n", val);
+    p->adc_voltages[pinno] = val;
+
+    if(avr_adc_is_active(opaque, pinno))
+    {
+        printf("We should be setting it now correctly!");
+        adc_convert(opaque);
+        // get correct VRef
+    }
 }
 
 /*static void avr_adc_reset(DeviceState *dev)
@@ -40,7 +125,22 @@ static uint64_t avr_adc_read(void *opaque, hwaddr addr, unsigned int size)
 static void avr_adc_write(void *opaque, hwaddr addr, uint64_t value,
                                 unsigned int size)
 {
-	printf("adc_write\n");
+    AVRPeripheralState *p = opaque;
+	printf("addr = %i\n", (int)addr);
+
+    switch(addr)
+    {
+        case 2:
+            p->adcsr = value;
+            break;
+        case 4:
+            p->admux = value;
+            adc_convert(opaque);
+            break;
+        default:
+            printf("NOT IMPLEMENTED ADC %i\n", (int)addr);
+            assert(false);
+    }
 }
 
 
@@ -90,11 +190,13 @@ static void avr_adc_class_init(ObjectClass *klass, void *data)
     adc->parent_receive = pc->receive;
     adc->parent_read = pc->read;
     adc->parent_write = pc->write;
+    adc->parent_is_active = pc->is_active;
 
     pc->can_receive = avr_adc_can_receive;
     pc->read = avr_adc_read;
     pc->write = avr_adc_write;
     pc->receive = avr_adc_receive;
+    pc->is_active = avr_adc_is_active;
 
     //printf("ADC class initiated\n");
 }

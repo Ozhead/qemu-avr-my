@@ -23,6 +23,7 @@
     Receive parent_receive;
     Read parent_read;
     Write parent_write;
+    IsActive parent_is_active;
  } AVRADCClass;
 
 

@@ -57,7 +57,7 @@ static void avr_port_receive(void *opaque, const uint8_t *buffer, int size)
                 assert(false);
             }
 
-            port->periphs_in_pin[pin_id]->receive(pState, buffer + ptr, len);
+            port->periphs_in_pin[pin_id]->receive(pState, buffer + ptr, len, pin_id);
         }
         else
         {

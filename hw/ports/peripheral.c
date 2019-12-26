@@ -11,9 +11,16 @@ static int avr_peripheral_can_receive(void *opaque)
 	return 1;
 }
 
-static void avr_peripheral_receive(void *opaque, const uint8_t *buffer, int size)
+static int avr_peripheral_is_active(void *opaque, uint32_t pinno)
+{
+    assert(false);
+    return 1;
+}
+
+static void avr_peripheral_receive(void *opaque, const uint8_t *buffer, int size, int pinno)
 {
 	printf("Calling avr_peripheral_receive\n");
+    assert(false);
 }
 
 static void avr_peripheral_reset(DeviceState *dev)
@@ -70,6 +77,7 @@ static void avr_peripheral_class_init(ObjectClass *klass, void *data)
     pc->read = avr_peripheral_read;
     pc->write = avr_peripheral_write;
     pc->receive = avr_peripheral_receive;
+    pc->is_active = avr_peripheral_is_active;
 }
 
 static const TypeInfo avr_peripheral_info = {
