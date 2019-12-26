@@ -6,11 +6,17 @@
 
 static int avr_port_can_receive(void *opaque)
 {
-    AVRPortState *gpio = opaque; 
+    AVRPortState *port = opaque; 
 	
 	/* if DDR is set to 0xFF, all pins are set as outputs... */
-	
-	if(gpio->ddr == 0xFF)
+	for(uint32_t i = 0; i < NUM_PINS; i++)
+    {
+        if(port->periphs[i] != NULL && port->periphs[i]->can_receive(port->periphs[i]))
+            return 1;
+    }
+
+    // TODO later! check all "unmapped" pins if they can receive something!
+	if(port->ddr == 0xFF)
 		return 0;
 	return 1;
 }

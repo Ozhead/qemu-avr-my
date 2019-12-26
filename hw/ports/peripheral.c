@@ -7,6 +7,7 @@
 static int avr_peripheral_can_receive(void *opaque)
 {
     printf("PERIPHERAL CAN RECEIVE :(\n");
+    assert(false);
 	return 1;
 }
 

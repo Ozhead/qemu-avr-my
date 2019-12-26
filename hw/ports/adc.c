@@ -4,11 +4,19 @@
 #include "hw/irq.h"
 #include "hw/qdev-properties.h"
 
+#define ADCEN (1 << 7)
+
 
 static int avr_adc_can_receive(void *opaque)
 {
     printf("ADC CAN RECEIVE JAAAAAAAAA\n");
-	return 1;
+    AVRPeripheralState *p = AVR_PERIPHERAL(opaque);
+
+    // if ADC is enabled, it generally CAN receive something...
+    if(p->adcsr & ADCEN)
+	    return 1;
+
+    return 0;
 }
 
 static void avr_adc_receive(void *opaque, const uint8_t *buffer, int size)

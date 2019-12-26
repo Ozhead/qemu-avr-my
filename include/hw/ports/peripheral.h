@@ -20,6 +20,7 @@ typedef struct
 
     CharBackend chr;
     
+    /* UART START */
 	//uint8_t pin;
 	uint8_t output_values;
 	uint8_t input_values;
@@ -30,6 +31,14 @@ typedef struct
     qemu_irq txc_irq;
     /* Data Register Empty */
     qemu_irq dre_irq;
+    /* UART END */
+
+    /* ADC START */
+    uint8_t adcsr;
+    uint8_t admux;
+    uint16_t adc;   // 10 bit => 2 byte
+    /* ADC END */
+
 } AVRPeripheralState;
 
 /* Virtual Functions:
