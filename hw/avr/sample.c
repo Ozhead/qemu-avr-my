@@ -261,7 +261,7 @@ static void sample_init(MachineState *machine)
     sms->adc = AVR_ADC(object_new(TYPE_AVR_ADC));
     //AVRADCClass *dc = AVR_ADC_GET_CLASS(sms->adc);
     AVRPeripheralClass *pc = AVR_PERIPHERAL_GET_CLASS(sms->adc);
-    add_peripheral_to_port(sms->porta, pc);
+    add_peripheral_to_port(sms->porta, pc, sms->adc);
     for(uint32_t i = 0; i < NUM_PINS; i++)
         map_peripheral_to_pin(sms->porta, pc, i);
 

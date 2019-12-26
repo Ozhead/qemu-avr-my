@@ -24,16 +24,48 @@ static int avr_port_can_receive(void *opaque)
 
 static void avr_port_receive(void *opaque, const uint8_t *buffer, int size)
 {
-	printf("Calling avr_port_receive\n");
-	//AVRPortState *port = opaque; 
-    const uint8_t header = buffer[0];
+    size_t ptr = 0;
+    printf("Calling avr_port_receive\n");
+    AVRPortState *port = opaque; 
+    while(ptr != size)
+    {
+        const uint8_t header = buffer[ptr];
 
-    //Protocol Draft 1:
-    const uint8_t pin_id = (header & 0b11100000) >> 5;
-    const uint8_t len = (header & 0b00011110) >> 1;
+        //Protocol Draft 1:
+        const uint8_t pin_id = (header & 0b11100000) >> 5;
+        const uint8_t len = (header & 0b00011110) >> 1;
 
-    printf("Header ID = %i Len = %i Size = %i\n", pin_id, len, size);
+        printf("Header ID = %i Len = %i Size = %i\n", pin_id, len, size);
 
+        ptr++;
+
+        if(port->periphs_in_pin[pin_id] != NULL)
+        {
+            AVRPeripheralState * pState = NULL;
+            for(int i = 0; i < port->peripheral_counter; i++)
+            {
+                if(port->periphs[i] == port->periphs_in_pin[pin_id])
+                {
+                    pState = port->states[i];
+                    break;
+                }
+            }
+
+            if(pState == NULL)
+            {
+                printf("FATAL ERROR: Can not find a state to given peripheral class\n");
+                assert(false);
+            }
+
+            port->periphs_in_pin[pin_id]->receive(pState, buffer + ptr, len);
+        }
+        else
+        {
+            printf("DigIO TODO\n");
+        }
+        
+        ptr += len; //advance the current pointer
+    }
 	//uint8_t update_val = buffer[0] & ~gpio->ddr;
 	// only set those bits that are set as input by DDR; for this, DDR is used as mask (inverted!)
 	//gpio->input_values = (gpio->input_values & gpio->ddr) | (update_val & ~gpio->ddr);
@@ -95,6 +127,7 @@ static void avr_port_init(Object *obj)
     for(uint32_t i = 0; i < NUM_PINS; i++)
     {
         s->periphs[i] = NULL;
+        s->states[i] = NULL;
         s->periphs_in_pin[i] = NULL;
     }
 

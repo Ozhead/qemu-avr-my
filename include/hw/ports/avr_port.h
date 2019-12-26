@@ -47,13 +47,15 @@ typedef struct
     qemu_irq dre_irq;
 
 
+    AVRPeripheralState * states[NUM_PINS];
+
     AVRPeripheralClass * periphs[NUM_PINS]; // general list of peripherals...
     AVRPeripheralClass * periphs_in_pin[NUM_PINS];
 
     uint8_t peripheral_counter;
 } AVRPortState;
 
-static inline void add_peripheral_to_port(AVRPortState * port, AVRPeripheralClass * periph)
+static inline void add_peripheral_to_port(AVRPortState * port, AVRPeripheralClass * periph, AVRPeripheralState * state)
 {
     if(port->peripheral_counter == NUM_PINS)
     {
@@ -68,6 +70,7 @@ static inline void add_peripheral_to_port(AVRPortState * port, AVRPeripheralClas
     }
 
     port->periphs[port->peripheral_counter] = periph;
+    port->states[port->peripheral_counter] = state;
     port->peripheral_counter++;
     printf("Added peripheral to port...\n");
 }

@@ -21,6 +21,7 @@ static int avr_adc_can_receive(void *opaque)
 static void avr_adc_receive(void *opaque, const uint8_t *buffer, int size)
 {
 	printf("Calling avr_adc_receive\n");
+    // float convert to int in ADC!
 }
 
 /*static void avr_adc_reset(DeviceState *dev)
