@@ -33,6 +33,7 @@ typedef struct
     /* Control and Status Registers */
     uint8_t port;
     uint8_t ddr;
+    uint8_t pin;
     
 	//uint8_t pin;
 	uint8_t output_values;
@@ -47,6 +48,7 @@ typedef struct
 
 
     AVRPeripheralState * states[NUM_PINS];
+    AVRPeripheralState * states_in_pin[NUM_PINS];
 
     AVRPeripheralClass * periphs[NUM_PINS]; // general list of peripherals...
     AVRPeripheralClass * periphs_in_pin[NUM_PINS];
@@ -74,7 +76,7 @@ static inline void add_peripheral_to_port(AVRPortState * port, AVRPeripheralClas
     printf("Added peripheral to port...\n");
 }
 
-static inline void map_peripheral_to_pin(AVRPortState * port, AVRPeripheralClass * periph, uint32_t portno)
+static inline void map_peripheral_to_pin(AVRPortState * port, AVRPeripheralClass * periph, AVRPeripheralState * state, uint32_t portno)
 {
     if(port->periphs_in_pin[portno] != NULL)
     {
@@ -83,6 +85,7 @@ static inline void map_peripheral_to_pin(AVRPortState * port, AVRPeripheralClass
     }
 
     port->periphs_in_pin[portno] = periph;
+    port->states_in_pin[portno] = state;
     printf("Added peripheral to pin %d\n", portno);
 }
 

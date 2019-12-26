@@ -4,6 +4,8 @@
 #include "hw/irq.h"
 #include "hw/qdev-properties.h"
 
+const uint8_t peripheral_msg_lengths[] = { 0, 0, 0, 0, 0, 0, 0, 0, 8};
+
 static int avr_peripheral_can_receive(void *opaque)
 {
     printf("PERIPHERAL CAN RECEIVE :(\n");

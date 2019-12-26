@@ -4,6 +4,7 @@
 #include "hw/irq.h"
 #include "hw/qdev-properties.h"
 
+
 //TODO: Correct return size!
 static int avr_port_can_receive(void *opaque)
 {
@@ -33,13 +34,14 @@ static void avr_port_receive(void *opaque, const uint8_t *buffer, int size)
 
         //Protocol Draft 1:
         const uint8_t pin_id = (header & 0b11100000) >> 5;
-        const uint8_t len = (header & 0b00011110) >> 1;
+        const uint8_t msg_id = (header & 0b00011110) >> 1;
 
-        printf("Header ID = %i Len = %i Size = %i\n", pin_id, len, size);
+        printf("Header ID = %i MsgID = %i Size = %i\n", pin_id, msg_id, size);
 
         ptr++;
 
-        if(port->periphs_in_pin[pin_id] != NULL)
+        //if(port->periphs_in_pin[pin_id]->is_active(port->states_in_pin[pin_id], pin_id))
+        if(msg_id)
         {
             AVRPeripheralState * pState = NULL;
             for(int i = 0; i < port->peripheral_counter; i++)
@@ -57,14 +59,20 @@ static void avr_port_receive(void *opaque, const uint8_t *buffer, int size)
                 assert(false);
             }
 
-            port->periphs_in_pin[pin_id]->receive(pState, buffer + ptr, len, pin_id);
+            port->periphs_in_pin[pin_id]->receive(port->states_in_pin[pin_id], buffer + ptr, peripheral_msg_lengths[msg_id], pin_id);
         }
         else
         {
-            printf("DigIO TODO\n");
+            printf("DIGIO %d\n", msg_id);
+            if(header & 1)      // set to 1
+                port->pin |= (1 << pin_id);
+            else
+                port->pin &= ~(1 << pin_id);
+
+            printf("PIN = %d\n", port->pin);
         }
         
-        ptr += len; //advance the current pointer
+        ptr += peripheral_msg_lengths[msg_id]; //advance the current pointer
     }
 	//uint8_t update_val = buffer[0] & ~gpio->ddr;
 	// only set those bits that are set as input by DDR; for this, DDR is used as mask (inverted!)
@@ -83,15 +91,106 @@ static void avr_port_reset(DeviceState *dev)
 static uint64_t avr_port_read(void *opaque, hwaddr addr, unsigned int size)
 {
 	printf("Call port base read\n");
-    //AVRGpioState *gpio = opaque;
+    AVRPortState *port = opaque;
+
+    switch(addr)
+    {
+        case PIN:
+            return port->pin;
+        case PORT:
+            return port->port;
+        case DDR:
+            return port->ddr;
+    }
 	
 	return 0;
+}
+
+static void avr_port_send_data(void *opaque)
+{
+    size_t data_ptr = 0;
+    uint8_t data[4096];
+    memset(data, 0, 4096);
+    AVRPortState *port = opaque;
+
+    printf("Try to send Data\n");
+    for(int i = 0; i < NUM_PINS; i++)
+    {
+        uint16_t pin_mask = 1 << i;
+        // this pin is set to input pin => ignore it; may be users fault if he sets DDR wrong!
+        if((port->ddr & pin_mask) == 0)
+            continue;
+
+        if(port->periphs_in_pin[i] != NULL) // DigIO
+        {
+            printf("Checking pin %d\n", i);
+            if(!port->periphs_in_pin[i]->is_active(port->states_in_pin[i], i))
+            {
+                printf("OK\n");
+                uint8_t val = (i << 5) & 0b11100000;    // write Pin ID, set the rest to zero!
+                if((port->port & pin_mask))
+                    val |= 1;                           // set the last bit to 1 due to logic one
+
+                data[data_ptr] = val;
+                data_ptr++;
+            }
+            else
+            {
+                assert(false);
+            }
+        }
+        else
+        {
+            assert(false);
+            //TODO andere Peripherien!
+        }
+        
+    }
+
+    qemu_chr_fe_write_all(&port->chr, data, data_ptr);
 }
 
 static void avr_port_write(void *opaque, hwaddr addr, uint64_t value,
                                 unsigned int size)
 {
 	printf("Port base write\n");
+    AVRPortState *port = opaque;
+
+    switch(addr)
+	{
+		case PIN:
+		{
+			printf("Writing to PIN... But nothing happened! TODO: Toggle\n");
+			//TODO: Actually this will toggle PORT independant of DDR
+		}
+		break;
+		case PORT:
+		{
+            printf("Update PORT\n");
+			/* only write those that are set by DDR to 1! */
+			uint8_t update_val = value & 0xFF;
+			//gpio->port = (gpio->port & ~gpio->ddr) | (update_val & gpio->ddr);
+			port->port = update_val;
+			
+			//uint8_t data = port->port & port->ddr;
+			
+            
+            // only send update if the output values changed!
+			/*if(data != gpio->output_values)
+			{
+				gpio->output_values = data;
+				qemu_chr_fe_write_all(&gpio->chr, &data, 1);
+			}*/
+            avr_port_send_data(port);
+		}
+		break;
+		case DDR:
+		{
+            printf("Update DDR\n");
+			port->ddr = value;
+		}
+		break;
+	}
 }
 
 static const MemoryRegionOps avr_port_ops = {

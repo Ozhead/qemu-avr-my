@@ -41,7 +41,7 @@ static void adc_convert(void * opaque)
     //printf("Converting stuff %f %f %d\n", val, vref, x);
     val = -1;
     double x = val * 1000 * 1024 / vref;
-    printf("%f\n", x);
+    //printf("%f\n", x);
     uint16_t final;
 
     if(x < 0)
@@ -77,23 +77,28 @@ static int avr_adc_can_receive(void *opaque)
 
 static int avr_adc_is_active(void *opaque, uint32_t pinno)
 {
+    printf("AVR ADC IS ACTIVE\n");
     AVRPeripheralState *p = opaque;
 
     if(p->adcsr & ADCEN)
     {
+        printf("Check 1 fertig\n");
         // TODO: Add further possibilites from datasheet!
         if((p->admux & 0b00011111) == pinno)
+        {
+            printf("Scheint ok zu sein\n");
             return 1;
+        }
     }
-
+    printf("Scheint 0 zu sein\n");
     return 0;
 }
 
-static void avr_adc_receive(void *opaque, const uint8_t *buffer, int size, int pinno)
+static void avr_adc_receive(void *opaque, const uint8_t *buffer, int msgid, int pinno)
 {
     AVRPeripheralState *p = opaque;
-	printf("Calling avr_adc_receive\n");
-    assert(size == sizeof(double));
+	printf("Calling avr_adc_receive %d\n", msgid);
+    assert(msgid == 8);  //TODO
     // float convert to int in ADC!
     double val;
     memcpy(&val, buffer, sizeof(double));
@@ -117,7 +122,21 @@ static void avr_adc_receive(void *opaque, const uint8_t *buffer, int size, int p
 
 static uint64_t avr_adc_read(void *opaque, hwaddr addr, unsigned int size)
 {
-	printf("Call adc read\n");
+	AVRPeripheralState *p = opaque;
+
+    switch(addr)
+    {
+        case 2:
+            return p->adcsr;
+        case 4:
+            return p->admux;
+        case 0: //ADCL
+            return p->adc & 0x00FF;
+        case 1: //ADCH
+            return ((p->adc & 0x0300) >> 8);
+        default:
+            assert(false);
+    }
 	
 	return 0;
 }

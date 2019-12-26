@@ -5,6 +5,11 @@
 #include "chardev/char-fe.h"
 #include "hw/hw.h"
 
+#define ID_DIGIO 0
+#define ID_ADC 8
+
+extern const uint8_t peripheral_msg_lengths[];
+
 #define NUM_PINS 8
 #define VCC 5.0
 
