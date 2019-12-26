@@ -262,6 +262,9 @@ static void sample_init(MachineState *machine)
     //AVRADCClass *dc = AVR_ADC_GET_CLASS(sms->adc);
     AVRPeripheralClass *pc = AVR_PERIPHERAL_GET_CLASS(sms->adc);
     add_peripheral_to_port(sms->porta, pc);
+    for(uint32_t i = 0; i < NUM_PINS; i++)
+        map_peripheral_to_pin(sms->porta, pc, i);
+
 
     busdev = SYS_BUS_DEVICE(sms->adc);
     sysbus_mmio_map(busdev, 0, OFFSET_DATA + 0x78);

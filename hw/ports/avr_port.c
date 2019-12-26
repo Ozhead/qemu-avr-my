@@ -26,7 +26,6 @@ static void avr_port_receive(void *opaque, const uint8_t *buffer, int size)
 	// only set those bits that are set as input by DDR; for this, DDR is used as mask (inverted!)
 	//gpio->input_values = (gpio->input_values & gpio->ddr) | (update_val & ~gpio->ddr);
 	gpio->input_values = buffer[0];
-	//printf("%i\n", gpio->input_values);
 	
 	if(buffer[0] & gpio->ddr)
 	{
@@ -86,6 +85,12 @@ static void avr_port_init(Object *obj)
     memory_region_init_io(&s->mmio, obj, &avr_port_ops, s, TYPE_AVR_PORT, 8);
     sysbus_init_mmio(SYS_BUS_DEVICE(obj), &s->mmio);
     qdev_init_gpio_in(DEVICE(s), avr_port_pr, 1);
+
+    for(uint32_t i = 0; i < NUM_PINS; i++)
+    {
+        s->periphs[i] = NULL;
+        s->periphs_in_pin[i] = NULL;
+    }
 
     s->peripheral_counter = 0;
     s->enabled = true;
