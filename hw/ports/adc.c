@@ -9,12 +9,11 @@
 
 static int avr_adc_can_receive(void *opaque)
 {
-    printf("ADC CAN RECEIVE JAAAAAAAAA\n");
-    AVRPeripheralState *p = AVR_PERIPHERAL(opaque);
+    AVRPeripheralState *p = opaque;
 
     // if ADC is enabled, it generally CAN receive something...
     if(p->adcsr & ADCEN)
-	    return 1;
+	    return 9;       // it is supposed to be a float! 8+1
 
     return 0;
 }

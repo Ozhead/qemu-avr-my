@@ -27,7 +27,7 @@
         "**/migration": true,
         "**/monitor": true,
         "**/nbd": true,
-        "**/net": true,
+        "**/net": false,
         "**/pc-bios": true,
         "**/plugins": true,
         "**/po": true,

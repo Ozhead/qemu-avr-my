@@ -4,39 +4,39 @@
 #include "hw/irq.h"
 #include "hw/qdev-properties.h"
 
+//TODO: Correct return size!
 static int avr_port_can_receive(void *opaque)
 {
     AVRPortState *port = opaque; 
 	
 	/* if DDR is set to 0xFF, all pins are set as outputs... */
-	for(uint32_t i = 0; i < NUM_PINS; i++)
+	/*for(uint32_t i = 0; i < port->peripheral_counter; i++)
     {
         if(port->periphs[i] != NULL && port->periphs[i]->can_receive(port->periphs[i]))
-            return 1;
-    }
+            return 4096;
+    }*/
 
     // TODO later! check all "unmapped" pins if they can receive something!
 	if(port->ddr == 0xFF)
 		return 0;
-	return 1;
+	return 4096;
 }
 
 static void avr_port_receive(void *opaque, const uint8_t *buffer, int size)
 {
 	printf("Calling avr_port_receive\n");
-	
-    AVRPortState *gpio = opaque;
-    //assert(size == 1);
+	//AVRPortState *port = opaque; 
+    const uint8_t header = buffer[0];
+
+    //Protocol Draft 1:
+    const uint8_t pin_id = (header & 0b11100000) >> 5;
+    const uint8_t len = (header & 0b00011110) >> 1;
+
+    printf("Header ID = %i Len = %i Size = %i\n", pin_id, len, size);
 
 	//uint8_t update_val = buffer[0] & ~gpio->ddr;
 	// only set those bits that are set as input by DDR; for this, DDR is used as mask (inverted!)
 	//gpio->input_values = (gpio->input_values & gpio->ddr) | (update_val & ~gpio->ddr);
-	gpio->input_values = buffer[0];
-	
-	if(buffer[0] & gpio->ddr)
-	{
-		printf("Caution: You are trying to write data in output ports!\n");
-	}
 }
 
 static void avr_port_reset(DeviceState *dev)
@@ -65,8 +65,8 @@ static void avr_port_write(void *opaque, hwaddr addr, uint64_t value,
 static const MemoryRegionOps avr_port_ops = {
     .read = avr_port_read,
     .write = avr_port_write,
-    .endianness = DEVICE_NATIVE_ENDIAN,
-    .impl = {.min_access_size = 1, .max_access_size = 1}
+    .endianness = DEVICE_NATIVE_ENDIAN
+    //.impl = {.min_access_size = 9, .max_access_size = 16}
 };
 
 static Property avr_port_properties[] = {
