@@ -40,11 +40,11 @@ typedef struct
 	uint8_t input_values;
 
     /* Receive Complete */
-    qemu_irq rxc_irq;
+    //qemu_irq rxc_irq;
     /* Transmit Complete */
-    qemu_irq txc_irq;
+    //qemu_irq txc_irq;
     /* Data Register Empty */
-    qemu_irq dre_irq;
+    //qemu_irq dre_irq;
 
 
     AVRPeripheralState * states[NUM_PINS];

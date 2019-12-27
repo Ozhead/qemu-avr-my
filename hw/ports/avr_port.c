@@ -157,13 +157,6 @@ static void avr_port_write(void *opaque, hwaddr addr, uint64_t value,
 			
 			//uint8_t data = port->port & port->ddr;
 			
-            
-            // only send update if the output values changed!
-			/*if(data != gpio->output_values)
-			{
-				gpio->output_values = data;
-				qemu_chr_fe_write_all(&gpio->chr, &data, 1);
-			}*/
             avr_port_send_data(port);   // trigger a sending of all data!
 		}
 		break;

@@ -49,6 +49,7 @@
 #include "include/hw/misc/avr_mask.h"
 #include "include/hw/ports/avr_gpio.h"
 #include "include/hw/ports/avr_port.h"
+#include "include/hw/ports/avr_uart.h"
 #include "elf.h"
 #include "hw/misc/unimp.h"
 #include "include/hw/ports/adc.h"
@@ -281,6 +282,13 @@ static void sample_init(MachineState *machine)
     qdev_prop_set_chr(DEVICE(sms->portd), "chardev", serial_hd(1));
 	object_property_set_bool(OBJECT(sms->portd), true, "realized",
 			&error_fatal);
+
+    // PORT D UART!
+    sms->uart0 = AVR_UART(object_new(TYPE_AVR_UART));
+    AVRPeripheralClass *pc1 = AVR_PERIPHERAL_GET_CLASS(sms->uart0);
+    add_peripheral_to_port(sms->portd, pc1, sms->uart0);
+    map_peripheral_to_pin(sms->portd, pc1, sms->uart0, 0);
+    map_peripheral_to_pin(sms->portd, pc1, sms->uart0, 1);
 
 
     printf("Port D initiated\n");

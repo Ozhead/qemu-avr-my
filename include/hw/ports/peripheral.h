@@ -29,10 +29,17 @@ typedef struct
     CharBackend chr;
     
     /* UART START */
-	//uint8_t pin;
-	uint8_t output_values;
-	uint8_t input_values;
-
+    bool enabled;
+    uint8_t data;
+    bool data_valid;
+    uint8_t char_mask;
+    /* Control and Status Registers */
+    uint8_t csra;
+    uint8_t csrb;
+    uint8_t csrc;
+    /* Baud Rate Registers (low/high byte) */
+    uint8_t brrh;
+    uint8_t brrl;
     /* Receive Complete */
     qemu_irq rxc_irq;
     /* Transmit Complete */
