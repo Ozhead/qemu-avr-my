@@ -30,12 +30,13 @@ static void avr_peripheral_reset(DeviceState *dev)
 	//AVRPeripheralState *port = AVR_PERIPHERAL(dev);
 
     //UART e.g: Set IRQs
+    assert(false);
 }
 
 static uint64_t avr_peripheral_read(void *opaque, hwaddr addr, unsigned int size)
 {
 	printf("Call peri read\n");
-	
+	assert(false);
 	return 0;
 }
 
@@ -43,6 +44,7 @@ static void avr_peripheral_write(void *opaque, hwaddr addr, uint64_t value,
                                 unsigned int size)
 {
 	printf("peripheral_write\n");
+    assert(false);
 }
 
 static void avr_peripheral_pr(void *opaque, int irq, int level)
