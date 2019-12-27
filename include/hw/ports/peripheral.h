@@ -17,6 +17,8 @@ extern const uint8_t peripheral_msg_lengths[];
 #define AVR_PERIPHERAL(obj) \
     OBJECT_CHECK(AVRPeripheralState, (obj), TYPE_AVR_PERIPHERAL)
 
+// for teh evil circular dependancy >:(
+typedef struct AVRPortState AVRPortState_t;
 
 typedef struct 
 {
@@ -27,6 +29,8 @@ typedef struct
     MemoryRegion mmio;
 
     CharBackend chr;
+
+    AVRPortState_t * father_port;
     
     /* UART START */
     bool enabled;
