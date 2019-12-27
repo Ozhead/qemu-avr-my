@@ -74,8 +74,11 @@
 #define TIMER1_BASE 0x80
 #define TIMER1_IMSK_BASE 0x6f
 #define TIMER1_IFR_BASE 0x36
+
 #define PORTA_BASE 0x20
-#define ADC_BASE
+#define PORTB_BASE 0x23
+#define PORTC_BASE 0x26
+#define PORTD_BASE 0x29
 
 /* Interrupt numbers used by peripherals */
 #define USART_RXC_IRQ 24
@@ -116,9 +119,14 @@ typedef struct {
     AVRTimer16State *timer1;
     AVRMaskState *prr[2];
 	
+    /* PORT A */
 	//AVRGpioState *porta;
-    AVRPeripheralState *adc;
     AVRPortState * porta;
+    AVRPeripheralState *adc;
+
+    /* PORT D */
+    AVRPortState * portd;
+    AVRPeripheralState * uart0;
 } SampleMachineState;
 
 #define TYPE_SAMPLE_MACHINE MACHINE_TYPE_NAME("sample")
@@ -226,34 +234,28 @@ static void sample_init(MachineState *machine)
                     OFFSET_DATA + PRR1_BASE, NULL));
 
     /* USART 0 built-in peripheral */
-    sms->usart0 = AVR_USART(object_new(TYPE_AVR_USART));
+    /*sms->usart0 = AVR_USART(object_new(TYPE_AVR_USART));
     busdev = SYS_BUS_DEVICE(sms->usart0);
     qdev_prop_set_chr(DEVICE(sms->usart0), "chardev", serial_hd(0));
     object_property_set_bool(OBJECT(sms->usart0), true, "realized",
             &error_fatal);
-    sysbus_mmio_map(busdev, 0, OFFSET_DATA + USART_BASE);
+    sysbus_mmio_map(busdev, 0, OFFSET_DATA + USART_BASE);*/
 	
     /*
      * These IRQ numbers don't match the datasheet because we're counting from
      * zero and not including reset.
      */
-    sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(cpudev, USART_RXC_IRQ));
+    /*sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(cpudev, USART_RXC_IRQ));
     sysbus_connect_irq(busdev, 1, qdev_get_gpio_in(cpudev, USART_DRE_IRQ));
     sysbus_connect_irq(busdev, 2, qdev_get_gpio_in(cpudev, USART_TXC_IRQ));
     sysbus_connect_irq(SYS_BUS_DEVICE(sms->prr[1]), PRR1_BIT_PRUSART1,
-            qdev_get_gpio_in(DEVICE(sms->usart0), 0));
+            qdev_get_gpio_in(DEVICE(sms->usart0), 0));*/
 	
-	/*	GPIO PORTA	*/
-	/*sms->porta = AVR_GPIO(object_new(TYPE_AVR_GPIO));
-	busdev = SYS_BUS_DEVICE(sms->porta);
-	qdev_prop_set_chr(DEVICE(sms->porta), "chardev", serial_hd(1));
-	object_property_set_bool(OBJECT(sms->porta), true, "realized",
-			&error_fatal);
-	sysbus_mmio_map(busdev, 0, OFFSET_DATA + PORTA_BASE);*/
+	/* PORT A */
     sms->porta = AVR_PORT(object_new(TYPE_AVR_PORT));
     busdev = SYS_BUS_DEVICE(sms->porta);
     sysbus_mmio_map(busdev, 0, OFFSET_DATA + PORTA_BASE);
-    qdev_prop_set_chr(DEVICE(sms->porta), "chardev", serial_hd(1));
+    qdev_prop_set_chr(DEVICE(sms->porta), "chardev", serial_hd(0));
 	object_property_set_bool(OBJECT(sms->porta), true, "realized",
 			&error_fatal);
 
@@ -271,6 +273,17 @@ static void sample_init(MachineState *machine)
     object_property_set_bool(OBJECT(sms->adc), true, "realized",
         &error_fatal);
     printf("Port A initiated\n");
+
+    /* PORT D */
+    sms->portd = AVR_PORT(object_new(TYPE_AVR_PORT));
+    busdev = SYS_BUS_DEVICE(sms->portd);
+    sysbus_mmio_map(busdev, 0, OFFSET_DATA + PORTD_BASE);
+    qdev_prop_set_chr(DEVICE(sms->portd), "chardev", serial_hd(1));
+	object_property_set_bool(OBJECT(sms->portd), true, "realized",
+			&error_fatal);
+
+
+    printf("Port D initiated\n");
 
     /* Timer 1 built-in periphal */
     sms->timer1 = AVR_TIMER16(object_new(TYPE_AVR_TIMER16));

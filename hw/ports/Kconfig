@@ -8,3 +8,7 @@ config AVR_PORT
     bool
 
 config AVR_ADC
+    bool
+
+config AVR_UART
+    bool

@@ -247,9 +247,6 @@ static const TypeInfo avr_adc_info = {
 
 static void avr_adc_register_types(void)
 {
-	//printf("Init ADC Types!\n");
-
-    //printf("%lu <= %lu\n", sizeof(AVRPeripheralClass), sizeof(AVRADCClass));
     type_register_static(&avr_adc_info);
 }
 
