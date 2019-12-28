@@ -12,3 +12,6 @@ config AVR_ADC
 
 config AVR_UART
     bool
+
+config AVR_TIMER_8b
+    bool

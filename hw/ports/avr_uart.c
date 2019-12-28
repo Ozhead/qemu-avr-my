@@ -92,12 +92,13 @@ static void avr_uart_reset(DeviceState *dev)
 }
 
 static uint64_t avr_uart_read(void *opaque, hwaddr addr, unsigned int size)
-{	
+{
     AVRPeripheralState *usart = opaque;
     uint8_t data;
     assert(size == 1);
 
-    if (!usart->enabled) {
+    if (!usart->enabled) 
+    {
         return 0;
     }
 

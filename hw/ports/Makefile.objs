@@ -3,3 +3,4 @@ common-obj-$(CONFIG_AVR_GPIO) += avr_port.o
 common-obj-$(CONFIG_AVR_GPIO) += peripheral.o
 common-obj-$(CONFIG_AVR_GPIO) += adc.o
 common-obj-$(CONFIG_AVR_GPIO) += avr_uart.o
+common-obj-$(CONFIG_AVR_GPIO) += avr_timer_8b.o
