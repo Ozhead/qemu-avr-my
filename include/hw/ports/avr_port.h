@@ -17,6 +17,8 @@ typedef void (*PeripheralFunc)(Object* obj, AVRPeripheralClass * P);
 #define AVR_PORT(obj) \
     OBJECT_CHECK(AVRPortState, (obj), TYPE_AVR_PORT)
 
+typedef void (*SendData)(void *opaque);
+
 typedef struct 
 {
     /* <private> */
@@ -26,6 +28,8 @@ typedef struct
     MemoryRegion mmio;
 
     CharBackend chr;
+
+    SendData send_data;
 
     bool enabled;
 

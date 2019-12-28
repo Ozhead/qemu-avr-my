@@ -3,6 +3,7 @@
 #include "qemu/log.h"
 #include "hw/irq.h"
 #include "hw/qdev-properties.h"
+#include "hw/ports/avr_port.h"
 
 static int avr_uart_can_receive(void *opaque)
 {
@@ -16,6 +17,7 @@ static int avr_uart_can_receive(void *opaque)
 
 static int avr_uart_is_active(void *opaque, uint32_t pinno)
 {
+    printf("UART is active\n");
     return 1;
 }
 
@@ -139,7 +141,7 @@ static void avr_uart_write(void *opaque, hwaddr addr, uint64_t value, unsigned i
 {
     AVRPeripheralState *usart = opaque;
     uint8_t mask;
-    uint8_t data;
+    //uint8_t data;
     assert((value & 0xff) == value);
     assert(size == 1);
 
@@ -162,8 +164,11 @@ static void avr_uart_write(void *opaque, hwaddr addr, uint64_t value, unsigned i
         if (usart->csrb & USART_CSRB_DREIE) {
             qemu_set_irq(usart->dre_irq, 1);
         }
-        data = value;
-        qemu_chr_fe_write_all(&usart->chr, &data, 1);
+        //data = value;
+        //qemu_chr_fe_write_all(&usart->chr, &data, 1);
+        AVRPortState * pPort = (AVRPortState*)usart->father_port;
+        pPort->send_data(pPort);
+        //usart->father_port->send_data(usart->father_port);
         break;
     case USART_CSRA:
         mask = 0b01000011;

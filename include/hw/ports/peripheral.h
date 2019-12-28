@@ -74,6 +74,7 @@ typedef uint64_t (*Read)(void *opaque, hwaddr addr, unsigned int size);
 typedef void (*Write)(void *opaque, hwaddr addr, uint64_t value, unsigned int size);
 typedef int (*IsActive)(void * opaque, uint32_t pinno);
 
+
 #define AVR_PERIPHERAL_GET_CLASS(obj) \
     OBJECT_GET_CLASS(AVRPeripheralClass, obj, TYPE_AVR_PERIPHERAL)
 #define AVR_PERIPHERAL_CLASS(klass) \
@@ -88,6 +89,7 @@ typedef struct AVRPeripheralClass
     Read read;
     Write write;
     IsActive is_active;
+    Serialize serialize;
 } AVRPeripheralClass;
 
 #endif

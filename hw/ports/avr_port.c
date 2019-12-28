@@ -98,9 +98,6 @@ static void avr_port_send_data(void *opaque)
     for(int i = 0; i < NUM_PINS; i++)
     {
         uint16_t pin_mask = 1 << i;
-        // this pin is set to input pin => ignore it; may be users fault if he sets DDR wrong!
-        if((port->ddr & pin_mask) == 0)
-            continue;
 
         // is it defined?
         if(port->periphs_in_pin[i] != NULL)
@@ -108,7 +105,12 @@ static void avr_port_send_data(void *opaque)
             printf("Checking pin %d\n", i);
             if(!port->periphs_in_pin[i]->is_active(port->states_in_pin[i], i))      //not active => this is a GPIO pin!
             {
-                printf("OK\n");
+            // this pin is set to input pin => ignore it; may be users fault if he sets DDR wrong!
+            if((port->ddr & pin_mask) == 0)
+            {
+                printf("PIN %d is set as input pin and thus ignored...\n", i);
+                continue;
+            }
                 uint8_t val = (i << 5) & 0b11100000;    // write Pin ID, set the rest to zero!
                 if((port->port & pin_mask))
                     val |= 1;                           // set the last bit to 1 due to logic one
@@ -118,14 +120,13 @@ static void avr_port_send_data(void *opaque)
             }
             else
             {
-                printf("Sending peripheral data stuff...");
+                printf("Sending peripheral data stuff...\n");
                 assert(false);
             }
         }
         else
         {
             assert(false);
-            //TODO: Keine Peripherie definiert => fallback zu digio
         }
         
     }
@@ -206,6 +207,7 @@ static void avr_port_init(Object *obj)
         s->periphs_in_pin[i] = NULL;
     }
 
+    s->send_data = avr_port_send_data;
     s->peripheral_counter = 0;
     s->enabled = true;
 }

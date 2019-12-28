@@ -290,6 +290,10 @@ static void sample_init(MachineState *machine)
     map_peripheral_to_pin(sms->portd, pc1, sms->uart0, 0);
     map_peripheral_to_pin(sms->portd, pc1, sms->uart0, 1);
 
+    busdev = SYS_BUS_DEVICE(sms->uart0);
+    sysbus_mmio_map(busdev, 0, OFFSET_DATA + USART_BASE);
+    object_property_set_bool(OBJECT(sms->uart0), true, "realized",
+        &error_fatal);
 
     printf("Port D initiated\n");
 
