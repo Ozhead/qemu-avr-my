@@ -30,6 +30,7 @@ typedef struct
     CharBackend chr;
 
     SendData send_data;
+    char name;
 
     bool enabled;
 

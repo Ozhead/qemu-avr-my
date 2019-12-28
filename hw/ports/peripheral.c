@@ -69,6 +69,11 @@ static void avr_peripheral_init(Object *obj)
                              s, NULL, true);
     avr_peripheral_reset(dev);
 }*/
+static uint32_t avr_peripheral_serialize(void * opaque, uint32_t pinno, uint8_t * pData)
+{
+    assert(false);
+    return 0;
+}
 
 static void avr_peripheral_class_init(ObjectClass *klass, void *data)
 {
@@ -82,6 +87,7 @@ static void avr_peripheral_class_init(ObjectClass *klass, void *data)
     pc->write = avr_peripheral_write;
     pc->receive = avr_peripheral_receive;
     pc->is_active = avr_peripheral_is_active;
+    pc->serialize = avr_peripheral_serialize;
 }
 
 static const TypeInfo avr_peripheral_info = {

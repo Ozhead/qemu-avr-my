@@ -73,7 +73,7 @@ typedef void (*Receive)(void *opaque, const uint8_t *buffer, int size, int pinno
 typedef uint64_t (*Read)(void *opaque, hwaddr addr, unsigned int size);
 typedef void (*Write)(void *opaque, hwaddr addr, uint64_t value, unsigned int size);
 typedef int (*IsActive)(void * opaque, uint32_t pinno);
-
+typedef uint32_t (*Serialize)(void * opaque, uint32_t pinno, uint8_t * pData);
 
 #define AVR_PERIPHERAL_GET_CLASS(obj) \
     OBJECT_GET_CLASS(AVRPeripheralClass, obj, TYPE_AVR_PERIPHERAL)

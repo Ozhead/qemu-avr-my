@@ -273,6 +273,7 @@ static void sample_init(MachineState *machine)
     sysbus_mmio_map(busdev, 0, OFFSET_DATA + 0x78);
     object_property_set_bool(OBJECT(sms->adc), true, "realized",
         &error_fatal);
+    sms->porta->name = 'A';
     printf("Port A initiated\n");
 
     /* PORT D */
@@ -282,6 +283,7 @@ static void sample_init(MachineState *machine)
     qdev_prop_set_chr(DEVICE(sms->portd), "chardev", serial_hd(1));
 	object_property_set_bool(OBJECT(sms->portd), true, "realized",
 			&error_fatal);
+    sms->portd->name = 'D';
 
     // PORT D UART!
     sms->uart0 = AVR_UART(object_new(TYPE_AVR_UART));
@@ -295,7 +297,7 @@ static void sample_init(MachineState *machine)
     object_property_set_bool(OBJECT(sms->uart0), true, "realized",
         &error_fatal);
 
-    printf("Port D initiated\n");
+    printf("Port D initiated\n---------------------------------\n");
 
     /* Timer 1 built-in periphal */
     sms->timer1 = AVR_TIMER16(object_new(TYPE_AVR_TIMER16));

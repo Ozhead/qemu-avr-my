@@ -78,14 +78,14 @@ static int avr_adc_is_active(void *opaque, uint32_t pinno)
 
     if(p->adcsr & ADCEN)
     {
-        printf("Check 1 fertig\n");
         // TODO: Add further possibilites from datasheet!
         if((p->admux & 0b00011111) == pinno)
         {
+            printf("ADC Active = 1\n");
             return 1;
         }
     }
-
+    printf("ADC Active = 0\n");
     return 0;
 }
 
@@ -189,6 +189,12 @@ static void avr_adc_write(void *opaque, hwaddr addr, uint64_t value,
     avr_peripheral_reset(dev);*/
 //}
 
+/* ADC is pure input so it can't send anything */
+static uint32_t avr_adc_serialize(void * opaque, uint32_t pinno, uint8_t * pData)
+{
+    return 0;
+}
+
 static void avr_adc_class_init(ObjectClass *klass, void *data)
 {
     //DeviceClass *dc = DEVICE_CLASS(klass);
@@ -204,12 +210,14 @@ static void avr_adc_class_init(ObjectClass *klass, void *data)
     adc->parent_read = pc->read;
     adc->parent_write = pc->write;
     adc->parent_is_active = pc->is_active;
+    adc->parent_serialize = pc->serialize;
 
     pc->can_receive = avr_adc_can_receive;
     pc->read = avr_adc_read;
     pc->write = avr_adc_write;
     pc->receive = avr_adc_receive;
     pc->is_active = avr_adc_is_active;
+    pc->serialize = avr_adc_serialize;
 
     //printf("ADC class initiated\n");
 }

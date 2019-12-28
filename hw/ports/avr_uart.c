@@ -240,6 +240,12 @@ static void avr_uart_write(void *opaque, hwaddr addr, uint64_t value, unsigned i
     }
 }
 
+static uint32_t avr_uart_serialize(void * opaque, uint32_t pinno, uint8_t * pData)
+{
+    printf("UART Serialize todo...\n");
+    return 0;
+}
+
 static void avr_uart_class_init(ObjectClass *klass, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
@@ -255,12 +261,14 @@ static void avr_uart_class_init(ObjectClass *klass, void *data)
     uart->parent_read = pc->read;
     uart->parent_write = pc->write;
     uart->parent_is_active = pc->is_active;
+    uart->parent_serialize = pc->serialize;
 
     pc->can_receive = avr_uart_can_receive;
     pc->read = avr_uart_read;
     pc->write = avr_uart_write;
     pc->receive = avr_uart_receive;
     pc->is_active = avr_uart_is_active;
+    pc->serialize = avr_uart_serialize;
 }
 
 static void avr_uart_pr(void *opaque, int irq, int level)

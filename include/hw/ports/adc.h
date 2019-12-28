@@ -24,6 +24,7 @@
     Read parent_read;
     Write parent_write;
     IsActive parent_is_active;
+    Serialize parent_serialize;
  } AVRADCClass;
 
 
