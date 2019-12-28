@@ -102,7 +102,6 @@ static void avr_port_send_data(void *opaque)
         uint16_t pin_mask = 1 << i;
 
         // is it defined?
-        printf("Doing PIN %d\n", i);
         if(port->periphs_in_pin[i] != NULL)
         {
             printf("Checking pin %d\n", i);
@@ -132,14 +131,27 @@ static void avr_port_send_data(void *opaque)
                 //port->periphs_in_pin[i]->serialize(port->states_in_pin[i], i, data + data_ptr);
             }
         }
-        else
-        {
-            assert(false);
+        else    // there is no pin here! so this must be DigIO anyway!
+        {   // TODO: Move this to a function...
+            if((port->ddr & pin_mask) == 0)
+            {
+                //printf("PIN %d is set as input pin and thus ignored...\n", i);
+                continue;
+            }
+
+            printf("Serializing DigIO t2\n");
+            uint8_t val = (i << 5) & 0b11100000;    // write Pin ID, set the rest to zero!
+            if((port->port & pin_mask))
+                val |= 1;                           // set the last bit to 1 due to logic one
+
+            data[data_ptr] = val;
+            data_ptr++;
         }
         
     }
 
-    qemu_chr_fe_write_all(&port->chr, data, data_ptr);  //send
+    if(data_ptr > 0)
+        qemu_chr_fe_write_all(&port->chr, data, data_ptr);  //send
 }
 
 static void avr_port_write(void *opaque, hwaddr addr, uint64_t value,

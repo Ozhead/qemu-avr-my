@@ -166,9 +166,9 @@ static void avr_uart_write(void *opaque, hwaddr addr, uint64_t value, unsigned i
         }
         //data = value;
         //qemu_chr_fe_write_all(&usart->chr, &data, 1);
+        usart->data = value;
         AVRPortState * pPort = (AVRPortState*)usart->father_port;
         pPort->send_data(pPort);
-        //usart->father_port->send_data(usart->father_port);
         break;
     case USART_CSRA:
         mask = 0b01000011;
@@ -242,8 +242,14 @@ static void avr_uart_write(void *opaque, hwaddr addr, uint64_t value, unsigned i
 
 static uint32_t avr_uart_serialize(void * opaque, uint32_t pinno, uint8_t * pData)
 {
-    printf("UART Serialize todo...\n");
-    return 0;
+    //uint8_t hdr, data;
+    AVRPeripheralState *usart = opaque;
+    printf("AVR UART SERIALIZE\n");
+    uint8_t hdr = pinno << 5;
+    hdr |= 2;   //encoding UART...
+    pData[0] = hdr;
+    pData[1] = usart->data;
+    return 2;
 }
 
 static void avr_uart_class_init(ObjectClass *klass, void *data)
