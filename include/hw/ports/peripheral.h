@@ -28,6 +28,9 @@ typedef struct
     /* <public> */
     MemoryRegion mmio;
 
+    MemoryRegion mmio_imsk;
+    MemoryRegion mmio_ifr;
+
     CharBackend chr;
 
     AVRPortState_t * father_port;

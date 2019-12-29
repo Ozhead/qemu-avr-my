@@ -96,10 +96,32 @@ static const MemoryRegionOps avr_timer_8b_ops = {
     .impl = {.min_access_size = 1, .max_access_size = 1}
 };
 
+static const MemoryRegionOps avr_timer_8b_imsk_ops = {
+    .read = avr_timer_8b_read,
+    .write = avr_timer_8b_write,
+    .endianness = DEVICE_NATIVE_ENDIAN,
+    .impl = {.max_access_size = 1}
+};
+
+static const MemoryRegionOps avr_timer_8b_ifr_ops = {
+    .read = avr_timer_8b_read_ifr,
+    .write = avr_timer_8b_write_ifr,
+    .endianness = DEVICE_NATIVE_ENDIAN,
+    .impl = {.max_access_size = 1}
+};
+
 static void avr_timer_8b_init(Object *obj)
 {
     AVRPeripheralState *s = AVR_PERIPHERAL(obj);
     memory_region_init_io(&s->mmio, obj, &avr_timer_8b_ops, s, TYPE_AVR_TIMER_8b, 8);
+
+    memory_region_init_io(&s->mmio_imsk, obj, &avr_timer_8b_imsk_ops,
+                          s, TYPE_AVR_TIMER_8b, 0x1);
+    memory_region_init_io(&s->mmio_ifr, obj, &avr_timer_8b_ifr_ops,
+                          s, TYPE_AVR_TIMER_8b, 0x1);
+
+    sysbus_init_mmio(SYS_BUS_DEVICE(obj), &s->mmio_imsk);
+    sysbus_init_mmio(SYS_BUS_DEVICE(obj), &s->mmio_ifr);
 
     /*sysbus_init_irq(SYS_BUS_DEVICE(obj), &s->rxc_irq);
     sysbus_init_irq(SYS_BUS_DEVICE(obj), &s->dre_irq);

@@ -63,6 +63,9 @@
         "configure": true,
         "**/qga": true
     },
-    "C_Cpp.errorSquiggles": "Disabled"
+    "C_Cpp.errorSquiggles": "Disabled",
+    "files.associations": {
+        "typeinfo": "c"
+    }
     
 }

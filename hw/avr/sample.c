@@ -50,6 +50,7 @@
 #include "include/hw/ports/avr_gpio.h"
 #include "include/hw/ports/avr_port.h"
 #include "include/hw/ports/avr_uart.h"
+#include "include/hw/ports/avr_timer_8b.h"
 #include "elf.h"
 #include "hw/misc/unimp.h"
 #include "include/hw/ports/adc.h"
@@ -75,6 +76,9 @@
 #define TIMER1_BASE 0x80
 #define TIMER1_IMSK_BASE 0x6f
 #define TIMER1_IFR_BASE 0x36
+#define TIMER0_BASE 0x44
+#define TIMER0_IMSK_BASE 0x6E
+#define TIMER0_IFR_BASE 0x35
 
 #define PORTA_BASE 0x20
 #define PORTB_BASE 0x23
@@ -86,11 +90,17 @@
 #define USART_DRE_IRQ 25
 #define USART_TXC_IRQ 26
 
+/* ATMEGA2560 */
 #define TIMER1_CAPT_IRQ 15
 #define TIMER1_COMPA_IRQ 16
 #define TIMER1_COMPB_IRQ 17
 #define TIMER1_COMPC_IRQ 18
 #define TIMER1_OVF_IRQ 19
+
+/* ATMEGA1284P */
+#define TIMER0_COMPA_IRQ 15
+#define TIMER0_COMPB_IRQ 16
+#define TIMER0_OVF_IRQ 17
 
 /*  Power reduction     */
 #define PRR1_BIT_PRTIM5     0x05    /*  Timer/Counter5  */
@@ -121,9 +131,13 @@ typedef struct {
     AVRMaskState *prr[2];
 	
     /* PORT A */
-	//AVRGpioState *porta;
     AVRPortState * porta;
     AVRPeripheralState *adc;
+
+    /* PORT B */
+    AVRPortState * portb;
+    AVRPeripheralState * timer0;
+
 
     /* PORT D */
     AVRPortState * portd;
@@ -268,7 +282,6 @@ static void sample_init(MachineState *machine)
     for(uint32_t i = 0; i < NUM_PINS; i++)
         map_peripheral_to_pin(sms->porta, pc, sms->adc, i);
 
-
     busdev = SYS_BUS_DEVICE(sms->adc);
     sysbus_mmio_map(busdev, 0, OFFSET_DATA + 0x78);
     object_property_set_bool(OBJECT(sms->adc), true, "realized",
@@ -276,11 +289,33 @@ static void sample_init(MachineState *machine)
     sms->porta->name = 'A';
     printf("Port A initiated\n");
 
+    /* PORT B */
+    sms->portb = AVR_PORT(object_new(TYPE_AVR_PORT));
+    busdev = SYS_BUS_DEVICE(sms->portb);
+    sysbus_mmio_map(busdev, 0, OFFSET_DATA + PORTB_BASE);
+    qdev_prop_set_chr(DEVICE(sms->portb), "chardev", serial_hd(1));
+	object_property_set_bool(OBJECT(sms->portb), true, "realized",
+			&error_fatal);
+
+    /* PORT B Timer 0 */
+    sms->timer0 = AVR_TIMER_8b(object_new(TYPE_AVR_TIMER_8b));
+    AVRPeripheralClass *pc2 = AVR_PERIPHERAL_GET_CLASS(sms->timer0);
+    add_peripheral_to_port(sms->portb, pc2, sms->timer0);
+    map_peripheral_to_pin(sms->portb, pc2, sms->timer0, 3);
+    map_peripheral_to_pin(sms->portb, pc2, sms->timer0, 4);
+
+    busdev = SYS_BUS_DEVICE(sms->timer0);
+    sysbus_mmio_map(busdev, 0, OFFSET_DATA + TIMER1_BASE);
+    sysbus_mmio_map(busdev, 1, OFFSET_DATA + TIMER1_IMSK_BASE);
+    sysbus_mmio_map(busdev, 2, OFFSET_DATA + TIMER1_IFR_BASE);
+    object_property_set_bool(OBJECT(sms->timer0), true, "realized",
+        &error_fatal);
+
     /* PORT D */
     sms->portd = AVR_PORT(object_new(TYPE_AVR_PORT));
     busdev = SYS_BUS_DEVICE(sms->portd);
     sysbus_mmio_map(busdev, 0, OFFSET_DATA + PORTD_BASE);
-    qdev_prop_set_chr(DEVICE(sms->portd), "chardev", serial_hd(1));
+    qdev_prop_set_chr(DEVICE(sms->portd), "chardev", serial_hd(2));
 	object_property_set_bool(OBJECT(sms->portd), true, "realized",
 			&error_fatal);
     sms->portd->name = 'D';
@@ -300,6 +335,7 @@ static void sample_init(MachineState *machine)
     printf("Port D initiated\n---------------------------------\n");
 
     /* Timer 1 built-in periphal */
+    
     sms->timer1 = AVR_TIMER16(object_new(TYPE_AVR_TIMER16));
     object_property_set_bool(OBJECT(sms->timer1), true, "realized",
             &error_fatal);
@@ -314,6 +350,7 @@ static void sample_init(MachineState *machine)
     sysbus_connect_irq(busdev, 4, qdev_get_gpio_in(cpudev, TIMER1_OVF_IRQ));
     sysbus_connect_irq(SYS_BUS_DEVICE(sms->prr[0]), PRR0_BIT_PRTIM1,
             qdev_get_gpio_in(DEVICE(sms->timer1), 0));
+    
 
     /* Load firmware (contents of flash) trying to auto-detect format */
     if (filename != NULL) {
