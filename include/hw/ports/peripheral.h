@@ -20,6 +20,11 @@ extern const uint8_t peripheral_msg_lengths[];
 // for teh evil circular dependancy >:(
 typedef struct AVRPortState AVRPortState_t;
 
+#define INTERRUPT_OVERFLOW 0
+#define INTERRUPT_COMPA 1
+#define INTERRUPT_COMPB 2
+
+
 typedef struct 
 {
     /* <private> */
@@ -69,10 +74,23 @@ typedef struct
     qemu_irq compb_irq;
     qemu_irq ovf_irq;
 
+    /* registers */
+    uint8_t cra;        // TCCR0A
+    uint8_t crb;        // TCCR0B
+    uint8_t cnt;        // TCNT0
+    uint8_t ocra;       // OCR0A
+    uint8_t ocrb;       // OCR0B
+
+    uint8_t rtmp;
+    uint8_t imsk;
+    uint8_t ifr;
+
     uint64_t cpu_freq_hz;
     uint64_t freq_hz;
     uint64_t period_ns;
     uint64_t reset_time_ns;
+    
+    uint8_t next_interrupt;
     /* Timer 0 End */
 
 } AVRPeripheralState;

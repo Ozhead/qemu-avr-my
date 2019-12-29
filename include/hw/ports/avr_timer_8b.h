@@ -15,6 +15,7 @@
 #define AVR_TIMER_8b_CLASS(klass) \
     OBJECT_CLASS_CHECK(AVRTimer8bClass, klass, TYPE_AVR_TIMER_8b)
 
+
  typedef struct AVRTimer8bClass
  {
     AVRPeripheralClass parent_class;
