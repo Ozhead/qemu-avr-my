@@ -36,9 +36,6 @@
 #define OCRA(t16)   (t16->ocra)
 #define OCRB(t16)   (t16->ocrb)
 
-
-
-
 static int avr_timer_8b_can_receive(void *opaque)
 {
     return 0;
@@ -56,69 +53,65 @@ static void avr_timer_8b_receive(void *opaque, const uint8_t *buffer, int msgid,
 
 static uint64_t avr_timer_8b_read_ifr(void *opaque, hwaddr addr, unsigned int size)
 {
-    return 0;
+    assert(size == 1);
+    AVRPeripheralState *t16 = opaque;
+    if (addr != 0) 
+    {
+        printf("Reading IFR that is not implemented!\n");
+        return 0;
+    }
+    return t16->ifr;
 }
 
 static uint64_t avr_timer_8b_read_imsk(void *opaque, hwaddr addr, unsigned int size)
 {
-    return 0;
-}
-
-static uint64_t avr_timer_8b_read(void *opaque, hwaddr addr, unsigned int size)
-{
-    return 0;
-}
-
-static void avr_timer_8b_write(void *opaque, hwaddr addr, uint64_t value,
-                                unsigned int size)
-{
-    
-}
-
-static void avr_timer_8b_write_imsk(void *opaque, hwaddr addr, uint64_t value,
-                                unsigned int size)
-{
-    
-}
-
-static void avr_timer_8b_write_ifr(void *opaque, hwaddr addr, uint64_t value,
-                                unsigned int size)
-{
-    
-}
-
-static uint32_t avr_timer_8b_serialize(void * opaque, uint32_t pinno, uint8_t * pData)
-{
-    return 0;
-}
-
-static void avr_timer_8b_reset(DeviceState *dev)
-{
-
-}
-
-static void avr_timer_8b_clock_reset(AVRPeripheralState *t16)
-{
-    t16->cnt = 0;
-    t16->reset_time_ns = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
-}
-
-static inline int64_t avr_timer_8b_ns_to_ticks(AVRPeripheralState *t16, int64_t t)
-{
-    if (t16->period_ns == 0) {
+    assert(size == 1);
+    AVRPeripheralState *t16 = opaque;
+    if (addr != 0) 
+    {
+        printf("Reading IMSK that is not implemented!\n");
         return 0;
     }
-    return t / t16->period_ns;
+    return t16->imsk;
 }
 
-static void avr_timer_8b_update_cnt(AVRPeripheralState *t16)
+static void avr_timer_8b_clksrc_update(AVRPeripheralState *t16)
 {
-    uint16_t cnt;
-    cnt = avr_timer_8b_ns_to_ticks(t16, qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) -
-                                       t16->reset_time_ns);
-    t16->cnt = (uint8_t)(cnt & 0xff);
+    uint16_t divider = 0;
+    switch (CLKSRC(t16)) {
+    case T16_CLKSRC_EXT_FALLING:
+    case T16_CLKSRC_EXT_RISING:
+        printf("external clock source unsupported\n");
+        goto end;
+    case T16_CLKSRC_STOPPED:
+        goto end;
+    case T16_CLKSRC_DIV1:
+        divider = 1;
+        break;
+    case T16_CLKSRC_DIV8:
+        divider = 8;
+        break;
+    case T16_CLKSRC_DIV64:
+        divider = 64;
+        break;
+    case T16_CLKSRC_DIV256:
+        divider = 256;
+        break;
+    case T16_CLKSRC_DIV1024:
+        divider = 1024;
+        break;
+    default:
+        goto end;
+    }
+    t16->freq_hz = t16->cpu_freq_hz / divider;
+    t16->period_ns = NANOSECONDS_PER_SECOND / t16->freq_hz;
+    printf("Timer frequency %" PRIu64 " hz, period %" PRIu64 " ns (%f s)\n",
+             t16->freq_hz, t16->period_ns, 1 / (double)t16->freq_hz);
+end:
+    return;
 }
 
+//
 static void avr_timer_8b_set_alarm(AVRPeripheralState *t16)
 {
     if (CLKSRC(t16) == T16_CLKSRC_EXT_FALLING ||
@@ -173,6 +166,136 @@ end:
     return;
 }
 
+static inline void avr_timer_8b_recalc_reset_time(AVRPeripheralState *t16)
+{
+    t16->reset_time_ns = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) -
+                         CNT(t16) * t16->period_ns;
+}
+
+static uint64_t avr_timer_8b_read(void *opaque, hwaddr addr, unsigned int size)
+{
+    return 0;
+}
+
+static void avr_timer_8b_write(void *opaque, hwaddr addr, uint64_t value,
+                                unsigned int size)
+{
+    assert(size == 1);
+    AVRPeripheralState *t16 = opaque;
+    uint8_t val8 = (uint8_t)value;
+    uint8_t prev_clk_src = CLKSRC(t16);
+
+    printf("write %d to offset %d\n", val8, (uint8_t)addr);
+
+    switch (addr) 
+    {
+    case 0:     // CRA
+        t16->cra = val8;
+        if (t16->cra & 0b11110000) 
+        {
+            printf("output compare pins unsupported\n");
+        }
+        break;
+    case 1:     // CRB
+        t16->crb = val8;
+
+        if (CLKSRC(t16) != prev_clk_src) 
+        {
+            avr_timer_8b_clksrc_update(t16);
+            if (prev_clk_src == T16_CLKSRC_STOPPED) {
+                t16->reset_time_ns = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
+            }
+        }
+        break;
+    case 2:     // CNT
+        /*
+         * CNT is the 16-bit counter value, it must be read/written via
+         * a temporary register (rtmp) to make the read/write atomic.
+         */
+        /* ICR also has this behaviour, and shares rtmp */
+        /*
+         * Writing CNT blocks compare matches for one clock cycle.
+         * Writing CNT to TOP or to an OCR value (if in use) will
+         * skip the relevant interrupt
+         */
+        t16->cnt = val8;
+        //t16->cnth = t16->rtmp;
+        avr_timer_8b_recalc_reset_time(t16);
+        break;
+    case 3:     // OCRA
+        /*
+         * OCRn cause the relevant output compare flag to be raised, and
+         * trigger an interrupt, when CNT is equal to the value here
+         */
+        t16->ocra = val8;
+        break;
+    case 4:     // OCRB
+        t16->ocrb = val8;
+        break;
+    default:
+        printf("Writing to AVR Timer 8b that is not defined??\n");
+        break;
+    }
+    avr_timer_8b_set_alarm(t16);
+}
+
+static void avr_timer_8b_write_imsk(void *opaque, hwaddr addr, uint64_t value,
+                                unsigned int size)
+{
+    assert(size == 1);
+    AVRPeripheralState *t16 = opaque;
+    if (addr != 0) 
+    {
+        printf("Writing IMSK that is not implemented!\n");
+        return;
+    }
+    t16->imsk = (uint8_t)value;
+}
+
+static void avr_timer_8b_write_ifr(void *opaque, hwaddr addr, uint64_t value,
+                                unsigned int size)
+{
+    assert(size == 1);
+    AVRPeripheralState *t16 = opaque;
+    if (addr != 0) 
+    {
+        printf("Writing IFR that is not implemented!\n");
+        return;
+    }
+    t16->ifr = (uint8_t)value;
+}
+
+static uint32_t avr_timer_8b_serialize(void * opaque, uint32_t pinno, uint8_t * pData)
+{
+    return 0;
+}
+
+//
+static void avr_timer_8b_clock_reset(AVRPeripheralState *t16)
+{
+    t16->cnt = 0;
+    t16->reset_time_ns = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
+}
+
+//
+static inline int64_t avr_timer_8b_ns_to_ticks(AVRPeripheralState *t16, int64_t t)
+{
+    if (t16->period_ns == 0) {
+        return 0;
+    }
+    return t / t16->period_ns;
+}
+
+//
+static void avr_timer_8b_update_cnt(AVRPeripheralState *t16)
+{
+    uint16_t cnt;
+    cnt = avr_timer_8b_ns_to_ticks(t16, qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) -
+                                       t16->reset_time_ns);
+    t16->cnt = (uint8_t)(cnt & 0xff);
+}
+
+//
 static void avr_timer_8b_interrupt(void *opaque)
 {
     printf("Der interrupt ballert\n");
@@ -221,6 +344,21 @@ static void avr_timer_8b_interrupt(void *opaque)
     avr_timer_8b_set_alarm(t16);
 }
 
+//
+static void avr_timer_8b_reset(DeviceState *dev)
+{
+    AVRPeripheralState *t16 = AVR_TIMER_8b(dev);
+
+    avr_timer_8b_clock_reset(t16);
+    avr_timer_8b_clksrc_update(t16);
+    avr_timer_8b_set_alarm(t16);
+
+    qemu_set_irq(t16->compa_irq, 0);
+    qemu_set_irq(t16->compb_irq, 0);
+    qemu_set_irq(t16->ovf_irq, 0);
+}
+
+/* Class functions below... */
 static Property avr_timer_8b_properties[] = {
     DEFINE_PROP_UINT64("cpu-frequency-hz", AVRPeripheralState,
                        cpu_freq_hz, 20000000),

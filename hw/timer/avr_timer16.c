@@ -92,7 +92,7 @@
 #define T16_MODE_CTC_ICR    12
 
 /* Accessors */
-#define CLKSRC(t16) (t16->crb & 7)
+#define CLKSRC(t16) (t16->crb & T16_CRB_CS)
 #define MODE(t16)   (((t16->crb & T16_CRB_WGM23) >> 1) | \
                      (t16->cra & T16_CRA_WGM01))
 #define CNT(t16)    VAL16(t16->cntl, t16->cnth)
