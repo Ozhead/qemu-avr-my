@@ -25,6 +25,12 @@
     Write parent_write;
     IsActive parent_is_active;
     Serialize parent_serialize;
+
+    /* additional timer functions */
+    Read parent_read_ifr;
+    Read parent_read_imsk;
+    Write parent_write_ifr;
+    Write parent_write_imsk;
  } AVRTimer8bClass;
 
 

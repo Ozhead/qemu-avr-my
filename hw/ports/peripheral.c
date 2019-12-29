@@ -58,6 +58,7 @@ static void avr_peripheral_init(Object *obj)
     AVRPeripheralState *s = AVR_PERIPHERAL(obj);
     sysbus_init_mmio(SYS_BUS_DEVICE(obj), &s->mmio);
     qdev_init_gpio_in(DEVICE(s), avr_peripheral_pr, 1);
+    printf("Peripheral Init\n");
 }
 
 /*static void avr_peripheral_realize(DeviceState *dev, Error **errp)
@@ -88,6 +89,11 @@ static void avr_peripheral_class_init(ObjectClass *klass, void *data)
     pc->receive = avr_peripheral_receive;
     pc->is_active = avr_peripheral_is_active;
     pc->serialize = avr_peripheral_serialize;
+    
+    pc->write_imsk = avr_peripheral_write;
+    pc->write_ifr = avr_peripheral_write;
+    pc->read_imsk = avr_peripheral_read;
+    pc->read_ifr = avr_peripheral_read;
 }
 
 static const TypeInfo avr_peripheral_info = {

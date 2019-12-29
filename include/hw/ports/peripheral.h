@@ -90,6 +90,12 @@ typedef struct AVRPeripheralClass
     Write write;
     IsActive is_active;
     Serialize serialize;
+
+    /* additional read & write functions! */
+    Read read_imsk;
+    Write write_imsk;
+    Read read_ifr;
+    Write write_ifr;
 } AVRPeripheralClass;
 
 #endif

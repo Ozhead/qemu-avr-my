@@ -19,12 +19,34 @@ static void avr_timer_8b_receive(void *opaque, const uint8_t *buffer, int msgid,
 
 }
 
+static uint64_t avr_timer_8b_read_ifr(void *opaque, hwaddr addr, unsigned int size)
+{
+    return 0;
+}
+
+static uint64_t avr_timer_8b_read_imsk(void *opaque, hwaddr addr, unsigned int size)
+{
+    return 0;
+}
+
 static uint64_t avr_timer_8b_read(void *opaque, hwaddr addr, unsigned int size)
 {
     return 0;
 }
 
 static void avr_timer_8b_write(void *opaque, hwaddr addr, uint64_t value,
+                                unsigned int size)
+{
+    
+}
+
+static void avr_timer_8b_write_imsk(void *opaque, hwaddr addr, uint64_t value,
+                                unsigned int size)
+{
+    
+}
+
+static void avr_timer_8b_write_ifr(void *opaque, hwaddr addr, uint64_t value,
                                 unsigned int size)
 {
     
@@ -48,6 +70,11 @@ static void avr_timer_8b_class_init(ObjectClass *klass, void *data)
     adc->parent_is_active = pc->is_active;
     adc->parent_serialize = pc->serialize;
 
+    adc->parent_read_ifr = pc->read_ifr;
+    adc->parent_read_imsk = pc->read_imsk;
+    adc->parent_write_ifr = pc->write_ifr;
+    adc->parent_write_imsk = pc->write_imsk;
+
     pc->can_receive = avr_timer_8b_can_receive;
     pc->read = avr_timer_8b_read;
     pc->write = avr_timer_8b_write;
@@ -55,6 +82,10 @@ static void avr_timer_8b_class_init(ObjectClass *klass, void *data)
     pc->is_active = avr_timer_8b_is_active;
     pc->serialize = avr_timer_8b_serialize;
 
+    pc->write_ifr = avr_timer_8b_write_ifr;
+    pc->write_imsk = avr_timer_8b_write_imsk;
+    pc->read_ifr = avr_timer_8b_read_ifr;
+    pc->read_imsk = avr_timer_8b_read_imsk;
     //printf("ADC class initiated\n");
 }
 
