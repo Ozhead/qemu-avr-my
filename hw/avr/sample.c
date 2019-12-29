@@ -296,6 +296,7 @@ static void sample_init(MachineState *machine)
     qdev_prop_set_chr(DEVICE(sms->portb), "chardev", serial_hd(1));
 	object_property_set_bool(OBJECT(sms->portb), true, "realized",
 			&error_fatal);
+    sms->portb->name = 'B';
 
     /* PORT B Timer 0 */
     sms->timer0 = AVR_TIMER_8b(object_new(TYPE_AVR_TIMER_8b));
@@ -308,6 +309,9 @@ static void sample_init(MachineState *machine)
     sysbus_mmio_map(busdev, 0, OFFSET_DATA + TIMER1_BASE);
     sysbus_mmio_map(busdev, 1, OFFSET_DATA + TIMER1_IMSK_BASE);
     sysbus_mmio_map(busdev, 2, OFFSET_DATA + TIMER1_IFR_BASE);
+    sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(cpudev, TIMER1_COMPA_IRQ));
+    sysbus_connect_irq(busdev, 1, qdev_get_gpio_in(cpudev, TIMER1_COMPB_IRQ));
+    sysbus_connect_irq(busdev, 2, qdev_get_gpio_in(cpudev, TIMER1_OVF_IRQ));
     object_property_set_bool(OBJECT(sms->timer0), true, "realized",
         &error_fatal);
 

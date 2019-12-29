@@ -63,6 +63,18 @@ typedef struct
     double adc_voltages[NUM_PINS];
     /* ADC END */
 
+    /* Timer 0 Start */
+    QEMUTimer *timer;
+    qemu_irq compa_irq;
+    qemu_irq compb_irq;
+    qemu_irq ovf_irq;
+
+    uint64_t cpu_freq_hz;
+    uint64_t freq_hz;
+    uint64_t period_ns;
+    uint64_t reset_time_ns;
+    /* Timer 0 End */
+
 } AVRPeripheralState;
 
 /* Virtual Functions:

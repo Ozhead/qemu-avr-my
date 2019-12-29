@@ -57,11 +57,30 @@ static uint32_t avr_timer_8b_serialize(void * opaque, uint32_t pinno, uint8_t * 
     return 0;
 }
 
+static void avr_timer_8b_reset(DeviceState *dev)
+{
+
+}
+
+static void avr_timer_8b_interrupt(void *opaque)
+{
+
+}
+
+static Property avr_timer_8b_properties[] = {
+    DEFINE_PROP_UINT64("cpu-frequency-hz", AVRPeripheralState,
+                       cpu_freq_hz, 20000000),
+    DEFINE_PROP_END_OF_LIST(),
+};
+
 static void avr_timer_8b_class_init(ObjectClass *klass, void *data)
 {
-    //DeviceClass *dc = DEVICE_CLASS(klass);
+    DeviceClass *dc = DEVICE_CLASS(klass);
     AVRPeripheralClass *pc = AVR_PERIPHERAL_CLASS(klass);
     AVRTimer8bClass * adc = AVR_TIMER_8b_CLASS(klass);
+
+    dc->reset = avr_timer_8b_reset;
+    dc->props = avr_timer_8b_properties;
   
     adc->parent_can_receive = pc->can_receive;
     adc->parent_receive = pc->receive;
@@ -86,8 +105,9 @@ static void avr_timer_8b_class_init(ObjectClass *klass, void *data)
     pc->write_imsk = avr_timer_8b_write_imsk;
     pc->read_ifr = avr_timer_8b_read_ifr;
     pc->read_imsk = avr_timer_8b_read_imsk;
-    //printf("ADC class initiated\n");
+    printf("ADC class initiated\n");
 }
+
 
 static const MemoryRegionOps avr_timer_8b_ops = {
     .read = avr_timer_8b_read,
@@ -113,6 +133,12 @@ static const MemoryRegionOps avr_timer_8b_ifr_ops = {
 static void avr_timer_8b_init(Object *obj)
 {
     AVRPeripheralState *s = AVR_PERIPHERAL(obj);
+
+    sysbus_init_irq(SYS_BUS_DEVICE(obj), &s->compa_irq);
+    sysbus_init_irq(SYS_BUS_DEVICE(obj), &s->compb_irq);
+    sysbus_init_irq(SYS_BUS_DEVICE(obj), &s->ovf_irq);
+
+
     memory_region_init_io(&s->mmio, obj, &avr_timer_8b_ops, s, TYPE_AVR_TIMER_8b, 8);
 
     memory_region_init_io(&s->mmio_imsk, obj, &avr_timer_8b_imsk_ops,
@@ -123,13 +149,8 @@ static void avr_timer_8b_init(Object *obj)
     sysbus_init_mmio(SYS_BUS_DEVICE(obj), &s->mmio_imsk);
     sysbus_init_mmio(SYS_BUS_DEVICE(obj), &s->mmio_ifr);
 
-    /*sysbus_init_irq(SYS_BUS_DEVICE(obj), &s->rxc_irq);
-    sysbus_init_irq(SYS_BUS_DEVICE(obj), &s->dre_irq);
-    sysbus_init_irq(SYS_BUS_DEVICE(obj), &s->txc_irq);
-    memory_region_init_io(&s->mmio, obj, &avr_peripheral_ops, s, TYPE_AVR_PERIPHERAL, 8);
-    sysbus_init_mmio(SYS_BUS_DEVICE(obj), &s->mmio);
-    qdev_init_gpio_in(DEVICE(s), avr_peripheral_pr, 1);*/
-    //s->enabled = true;
+    s->timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, avr_timer_8b_interrupt, s);
+    s->enabled = true;
     printf("AVR Timer8b object init\n");
 }
 
