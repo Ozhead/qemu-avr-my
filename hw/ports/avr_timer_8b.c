@@ -213,7 +213,8 @@ static void avr_timer_8b_toggle_pwm(AVRPeripheralState * t16)
 {
     uint8_t curr_pwm = t16->cra & 0b11110011;
 
-    if(curr_pwm != t16->last_pwm || t16->ocra != t16->last_ocra || t16->ocrb != t16->last_ocrb)
+    // PWM mode changed OR one of the compare registers changed OR the clock has been stopped!
+    if(curr_pwm != t16->last_pwm || t16->ocra != t16->last_ocra || t16->ocrb != t16->last_ocrb || CLKSRC(t16) == T16_CLKSRC_STOPPED)
     {
         printf("Change in PWM detected!\n");
         t16->last_pwm = curr_pwm;
@@ -254,6 +255,11 @@ static void avr_timer_8b_write(void *opaque, hwaddr addr, uint64_t value,
             avr_timer_8b_clksrc_update(t16);
             if (prev_clk_src == T16_CLKSRC_STOPPED) {
                 t16->reset_time_ns = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
+            }
+
+            if(CLKSRC(t16) == T16_CLKSRC_STOPPED && prev_clk_src != T16_CLKSRC_STOPPED)
+            {
+                avr_timer_8b_toggle_pwm(t16);
             }
         }
         break;
