@@ -26,7 +26,7 @@ static int avr_port_can_receive(void *opaque)
 static void avr_port_receive(void *opaque, const uint8_t *buffer, int size)
 {
     size_t ptr = 0;
-    printf("Calling avr_port_receive\n");
+    printf("Calling avr_port_receive %c(%d)\n", buffer[0], size);
     AVRPortState *port = opaque; 
     while(ptr != size)
     {

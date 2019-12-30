@@ -154,6 +154,8 @@ static void avr_adc_write(void *opaque, hwaddr addr, uint64_t value,
             printf("NOT IMPLEMENTED ADC %i\n", (int)addr);
             assert(false);
     }
+
+    printf("ADC write done\n");
 }
 
 

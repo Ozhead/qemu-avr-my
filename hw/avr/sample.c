@@ -306,12 +306,12 @@ static void sample_init(MachineState *machine)
     map_peripheral_to_pin(sms->portb, pc2, sms->timer0, 4);
 
     busdev = SYS_BUS_DEVICE(sms->timer0);
-    sysbus_mmio_map(busdev, 0, OFFSET_DATA + TIMER1_BASE);
-    sysbus_mmio_map(busdev, 1, OFFSET_DATA + TIMER1_IMSK_BASE);
-    sysbus_mmio_map(busdev, 2, OFFSET_DATA + TIMER1_IFR_BASE);
-    sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(cpudev, TIMER1_COMPA_IRQ));
-    sysbus_connect_irq(busdev, 1, qdev_get_gpio_in(cpudev, TIMER1_COMPB_IRQ));
-    sysbus_connect_irq(busdev, 2, qdev_get_gpio_in(cpudev, TIMER1_OVF_IRQ));
+    sysbus_mmio_map(busdev, 0, OFFSET_DATA + TIMER0_BASE);
+    sysbus_mmio_map(busdev, 1, OFFSET_DATA + TIMER0_IMSK_BASE);
+    sysbus_mmio_map(busdev, 2, OFFSET_DATA + TIMER0_IFR_BASE);
+    sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(cpudev, TIMER0_COMPA_IRQ));
+    sysbus_connect_irq(busdev, 1, qdev_get_gpio_in(cpudev, TIMER0_COMPB_IRQ));
+    sysbus_connect_irq(busdev, 2, qdev_get_gpio_in(cpudev, TIMER0_OVF_IRQ));
     object_property_set_bool(OBJECT(sms->timer0), true, "realized",
         &error_fatal);
 
@@ -340,20 +340,20 @@ static void sample_init(MachineState *machine)
 
     /* Timer 1 built-in periphal */
     
-    sms->timer1 = AVR_TIMER16(object_new(TYPE_AVR_TIMER16));
+    /*sms->timer1 = AVR_TIMER16(object_new(TYPE_AVR_TIMER16));
     object_property_set_bool(OBJECT(sms->timer1), true, "realized",
             &error_fatal);
     busdev = SYS_BUS_DEVICE(sms->timer1);
     sysbus_mmio_map(busdev, 0, OFFSET_DATA + TIMER1_BASE);
     sysbus_mmio_map(busdev, 1, OFFSET_DATA + TIMER1_IMSK_BASE);
-    sysbus_mmio_map(busdev, 2, OFFSET_DATA + TIMER1_IFR_BASE);
-    sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(cpudev, TIMER1_CAPT_IRQ));
+    sysbus_mmio_map(busdev, 2, OFFSET_DATA + TIMER1_IFR_BASE);*/
+    /*sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(cpudev, TIMER1_CAPT_IRQ));
     sysbus_connect_irq(busdev, 1, qdev_get_gpio_in(cpudev, TIMER1_COMPA_IRQ));
     sysbus_connect_irq(busdev, 2, qdev_get_gpio_in(cpudev, TIMER1_COMPB_IRQ));
     sysbus_connect_irq(busdev, 3, qdev_get_gpio_in(cpudev, TIMER1_COMPC_IRQ));
     sysbus_connect_irq(busdev, 4, qdev_get_gpio_in(cpudev, TIMER1_OVF_IRQ));
     sysbus_connect_irq(SYS_BUS_DEVICE(sms->prr[0]), PRR0_BIT_PRTIM1,
-            qdev_get_gpio_in(DEVICE(sms->timer1), 0));
+            qdev_get_gpio_in(DEVICE(sms->timer1), 0));*/
     
 
     /* Load firmware (contents of flash) trying to auto-detect format */

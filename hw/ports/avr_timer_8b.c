@@ -24,9 +24,9 @@
 #define T16_CLKSRC_EXT_FALLING 6
 #define T16_CLKSRC_EXT_RISING  7
 
-#define T16_INT_TOV    0x0 /* Timer overflow */
-#define T16_INT_OCA    0x1 /* Output compare A */
-#define T16_INT_OCB    0x2 /* Output compare B */
+#define T16_INT_TOV    0x1 /* Timer overflow */
+#define T16_INT_OCA    0x2 /* Output compare A */
+#define T16_INT_OCB    0x4 /* Output compare B */
 
 
                     // fourth bit, set to bit 3 + bits 0 and 1 of cra! == WGM02:0
@@ -118,6 +118,7 @@ static void avr_timer_8b_set_alarm(AVRPeripheralState *t16)
         CLKSRC(t16) == T16_CLKSRC_EXT_RISING ||
         CLKSRC(t16) == T16_CLKSRC_STOPPED) {
         /* Timer is disabled or set to external clock source (unsupported) */
+        printf("No clock set...\n");
         goto end;
     }
 
@@ -160,7 +161,7 @@ static void avr_timer_8b_set_alarm(AVRPeripheralState *t16)
     uint64_t alarm_ns = t16->reset_time_ns + ((CNT(t16) + alarm_offset) * t16->period_ns);
     timer_mod(t16->timer, alarm_ns);
 
-    printf("next alarm %" PRIu64 " ns from now", alarm_offset * t16->period_ns);
+    //printf("next alarm %" PRIu64 " ns from now\n", alarm_offset * t16->period_ns);
 
 end:
     return;
@@ -180,12 +181,13 @@ static uint64_t avr_timer_8b_read(void *opaque, hwaddr addr, unsigned int size)
 static void avr_timer_8b_write(void *opaque, hwaddr addr, uint64_t value,
                                 unsigned int size)
 {
+    //printf("AVR Timer Write\n");
     assert(size == 1);
     AVRPeripheralState *t16 = opaque;
     uint8_t val8 = (uint8_t)value;
     uint8_t prev_clk_src = CLKSRC(t16);
 
-    printf("write %d to offset %d\n", val8, (uint8_t)addr);
+    //printf("write %d to addr %d\n", val8, (uint8_t)addr);
 
     switch (addr) 
     {
@@ -236,12 +238,14 @@ static void avr_timer_8b_write(void *opaque, hwaddr addr, uint64_t value,
         printf("Writing to AVR Timer 8b that is not defined??\n");
         break;
     }
+    //printf("Set alarm...\n");
     avr_timer_8b_set_alarm(t16);
 }
 
 static void avr_timer_8b_write_imsk(void *opaque, hwaddr addr, uint64_t value,
                                 unsigned int size)
 {
+    //printf("Write imsk\n");
     assert(size == 1);
     AVRPeripheralState *t16 = opaque;
     if (addr != 0) 
@@ -250,11 +254,13 @@ static void avr_timer_8b_write_imsk(void *opaque, hwaddr addr, uint64_t value,
         return;
     }
     t16->imsk = (uint8_t)value;
+    //printf("Write imsk done %d\n", t16->imsk);
 }
 
 static void avr_timer_8b_write_ifr(void *opaque, hwaddr addr, uint64_t value,
                                 unsigned int size)
 {
+    //printf("Write ifr\n");
     assert(size == 1);
     AVRPeripheralState *t16 = opaque;
     if (addr != 0) 
@@ -298,7 +304,7 @@ static void avr_timer_8b_update_cnt(AVRPeripheralState *t16)
 //
 static void avr_timer_8b_interrupt(void *opaque)
 {
-    printf("Der interrupt ballert\n");
+    //printf("Der interrupt ballert\n");
     AVRPeripheralState *t16 = opaque;
     uint8_t mode = MODE(t16);
 
@@ -311,14 +317,16 @@ static void avr_timer_8b_interrupt(void *opaque)
         return;
     }
 
-    printf("interrupt, cnt = %d\n", CNT(t16));
+    //printf("interrupt, cnt = %d\n", CNT(t16));
 
     // Counter overflow 
     if (t16->next_interrupt == INTERRUPT_OVERFLOW) {
-        printf("0xff overflow\n");
+        //printf("0xff overflow\n");
         avr_timer_8b_clock_reset(t16);
+        //printf("Before interrupt: %d\n", t16->imsk);
         if (t16->imsk & T16_INT_TOV) 
         {
+            //printf("Starting overflow...\n");
             t16->ifr |= T16_INT_TOV;
             qemu_set_irq(t16->ovf_irq, 1);
         }
@@ -332,11 +340,13 @@ static void avr_timer_8b_interrupt(void *opaque)
     // Check for output compare interrupts 
     if (t16->imsk & T16_INT_OCA && t16->next_interrupt == INTERRUPT_COMPA) 
     {
+        printf("Set Compa irq\n");
         t16->ifr |= T16_INT_OCA;
         qemu_set_irq(t16->compa_irq, 1);
     }
     if (t16->imsk & T16_INT_OCB && t16->next_interrupt == INTERRUPT_COMPB) 
     {
+        printf("Set compb irq\n");
         t16->ifr |= T16_INT_OCB;
         qemu_set_irq(t16->compb_irq, 1);
     }
@@ -356,6 +366,17 @@ static void avr_timer_8b_reset(DeviceState *dev)
     qemu_set_irq(t16->compa_irq, 0);
     qemu_set_irq(t16->compb_irq, 0);
     qemu_set_irq(t16->ovf_irq, 0);
+}
+
+static void avr_timer_8b_pr(void *opaque, int irq, int level)
+{
+    AVRPeripheralState *s = AVR_TIMER_8b(opaque);
+
+    s->enabled = !level;
+
+    if (!s->enabled) {
+        avr_timer_8b_reset(DEVICE(s));
+    }
 }
 
 /* Class functions below... */
@@ -409,8 +430,8 @@ static const MemoryRegionOps avr_timer_8b_ops = {
 };
 
 static const MemoryRegionOps avr_timer_8b_imsk_ops = {
-    .read = avr_timer_8b_read,
-    .write = avr_timer_8b_write,
+    .read = avr_timer_8b_read_imsk,
+    .write = avr_timer_8b_write_imsk,
     .endianness = DEVICE_NATIVE_ENDIAN,
     .impl = {.max_access_size = 1}
 };
@@ -440,6 +461,8 @@ static void avr_timer_8b_init(Object *obj)
 
     sysbus_init_mmio(SYS_BUS_DEVICE(obj), &s->mmio_imsk);
     sysbus_init_mmio(SYS_BUS_DEVICE(obj), &s->mmio_ifr);
+
+    qdev_init_gpio_in(DEVICE(s), avr_timer_8b_pr, 1);
 
     s->timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, avr_timer_8b_interrupt, s);
     s->enabled = true;
