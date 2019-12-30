@@ -3,6 +3,7 @@
 #include "qemu/log.h"
 #include "hw/irq.h"
 #include "hw/qdev-properties.h"
+#include "hw/ports/avr_port.h"
 
 #define WGM00   0
 #define WGM01   1
@@ -41,14 +42,37 @@ static int avr_timer_8b_can_receive(void *opaque)
     return 0;
 }
 
+// if PWM is active or pin somehow other used...
 static int avr_timer_8b_is_active(void *opaque, uint32_t pinno)
 {
+    printf("Timer is active on Pin %d\n", pinno);
+    AVRPeripheralState *t16 = opaque;
+
+    if (CLKSRC(t16) == T16_CLKSRC_EXT_FALLING ||
+        CLKSRC(t16) == T16_CLKSRC_EXT_RISING ||
+        CLKSRC(t16) == T16_CLKSRC_STOPPED) {
+        /* Timer is disabled or set to external clock source (unsupported) */
+        printf("No supported clock set...\n");
+        return 0;
+    }
+
+    if(MODE(t16) == MODE_NORMAL || MODE(t16) == MODE_CTC)
+    {
+        return 0;
+    }
+
+    // the pin must be set to output port!
+    AVRPortState * pPort = (AVRPortState*)t16->father_port;
+    uint8_t pin_mask = (1 << pinno);
+    if(pPort->ddr & pin_mask)
+        return 1;
+
     return 0;
 }
 
 static void avr_timer_8b_receive(void *opaque, const uint8_t *buffer, int msgid, int pinno)
 {
-
+    assert(false);
 }
 
 static uint64_t avr_timer_8b_read_ifr(void *opaque, hwaddr addr, unsigned int size)
@@ -143,6 +167,12 @@ static void avr_timer_8b_set_alarm(AVRPeripheralState *t16)
                 next_interrupt = INTERRUPT_COMPA;
             }
         break;
+        case MODE_FAST_PWM:
+        {
+            // nothing to do...
+            ;
+        }
+        break;
         default:
             printf("pwm modes are unsupported\n");
             goto end;
@@ -178,6 +208,21 @@ static uint64_t avr_timer_8b_read(void *opaque, hwaddr addr, unsigned int size)
     return 0;
 }
 
+// only called when pwm is really enabled!
+static void avr_timer_8b_toggle_pwm(AVRPeripheralState * t16)
+{
+    uint8_t curr_pwm = t16->cra & 0b11110011;
+
+    if(curr_pwm != t16->last_pwm)
+    {
+        printf("Change in PWM detected!\n");
+        t16->last_pwm = curr_pwm;
+
+        AVRPortState * pPort = (AVRPortState*)t16->father_port;
+        pPort->send_data(pPort);
+    }
+}
+
 static void avr_timer_8b_write(void *opaque, hwaddr addr, uint64_t value,
                                 unsigned int size)
 {
@@ -197,6 +242,7 @@ static void avr_timer_8b_write(void *opaque, hwaddr addr, uint64_t value,
         {
             printf("output compare pins unsupported\n");
         }
+        avr_timer_8b_toggle_pwm(t16);
         break;
     case 1:     // CRB
         t16->crb = val8;
@@ -273,7 +319,51 @@ static void avr_timer_8b_write_ifr(void *opaque, hwaddr addr, uint64_t value,
 
 static uint32_t avr_timer_8b_serialize(void * opaque, uint32_t pinno, uint8_t * pData)
 {
-    return 0;
+    AVRPeripheralState *t16 = opaque;
+    uint8_t hdr, mode;
+    uint8_t top = 0xFF;
+
+    if(t16->crb & 8)
+    {
+        top = t16->ocra;
+        printf("Overwriting TOP to %d\n", top);
+    }
+
+    if(pinno == 3)
+    {
+        hdr = 0b01100100;
+        mode = (t16->cra & 0b11000000) >> 6;
+    }
+    else if(pinno == 4)
+    {
+        hdr = 0b10000100;
+        mode = (t16->cra & 0b00110000) >> 4;
+    }
+    else
+    {
+        printf("Wrong pinno given to avr timer serialize\n");
+        return 0;
+    }
+    
+    pData[0] = hdr;
+    double val = 0;
+
+    if(mode == 0)
+    {
+        printf("MODE 0 LOL => disabled\n");
+    }
+    else if(mode == 1)
+    {
+        printf("Mode 1 for CMPA not enabled\n");
+    }
+    else if(mode == 3)
+        val = (double)(top + 1) / 256.0;
+    else if(mode == 2)
+        val = (double)(255 - top) / 256.0;
+
+    printf("Val = %5.2f with top = %d\n", val, top);
+    memcpy(pData+1, &val, sizeof(double));
+    return 9;
 }
 
 //

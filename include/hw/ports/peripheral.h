@@ -6,6 +6,8 @@
 #include "hw/hw.h"
 
 #define ID_DIGIO 0
+#define ID_USART 1
+#define ID_PWM 2
 #define ID_ADC 8
 
 extern const uint8_t peripheral_msg_lengths[];
@@ -52,6 +54,7 @@ typedef struct
     /* Baud Rate Registers (low/high byte) */
     uint8_t brrh;
     uint8_t brrl;
+
     /* Receive Complete */
     qemu_irq rxc_irq;
     /* Transmit Complete */
@@ -84,7 +87,8 @@ typedef struct
     uint8_t rtmp;
     uint8_t imsk;
     uint8_t ifr;
-
+    
+    uint8_t last_pwm;
     uint64_t cpu_freq_hz;
     uint64_t freq_hz;
     uint64_t period_ns;

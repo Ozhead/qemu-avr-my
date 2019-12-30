@@ -121,6 +121,7 @@ static void avr_port_send_data(void *opaque)
 
                 data[data_ptr] = val;
                 data_ptr++;
+                printf("Dataptr = %lu\n", data_ptr);
             }
             else
             {
@@ -128,6 +129,7 @@ static void avr_port_send_data(void *opaque)
                 //assert(false);
                 // serialize the data, put it into the array (happens inside the func) and increment data_ptr
                 data_ptr += port->periphs_in_pin[i]->serialize(port->states_in_pin[i], i, data + data_ptr);
+                printf("Dataptr = %lu\n", data_ptr);
                 //port->periphs_in_pin[i]->serialize(port->states_in_pin[i], i, data + data_ptr);
             }
         }
@@ -146,10 +148,12 @@ static void avr_port_send_data(void *opaque)
 
             data[data_ptr] = val;
             data_ptr++;
+            printf("Dataptr = %lu\n", data_ptr);
         }
         
     }
 
+    printf("Sent %lu bytes\n", data_ptr);
     if(data_ptr > 0)
         qemu_chr_fe_write_all(&port->chr, data, data_ptr);  //send
 }
@@ -157,7 +161,7 @@ static void avr_port_send_data(void *opaque)
 static void avr_port_write(void *opaque, hwaddr addr, uint64_t value,
                                 unsigned int size)
 {
-	printf("Port base write\n");
+	//printf("Port base write\n");
     AVRPortState *port = opaque;
 
     switch(addr)
@@ -183,8 +187,9 @@ static void avr_port_write(void *opaque, hwaddr addr, uint64_t value,
 		break;
 		case DDR:
 		{
-            printf("Update DDR\n");
+            //printf("Update DDR\n");
 			port->ddr = value;
+            avr_port_send_data(port);
 		}
 		break;
 	}
