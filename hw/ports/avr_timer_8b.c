@@ -213,10 +213,12 @@ static void avr_timer_8b_toggle_pwm(AVRPeripheralState * t16)
 {
     uint8_t curr_pwm = t16->cra & 0b11110011;
 
-    if(curr_pwm != t16->last_pwm)
+    if(curr_pwm != t16->last_pwm || t16->ocra != t16->last_ocra || t16->ocrb != t16->last_ocrb)
     {
         printf("Change in PWM detected!\n");
         t16->last_pwm = curr_pwm;
+        t16->last_ocra = t16->ocra;
+        t16->last_ocrb = t16->ocrb;
 
         AVRPortState * pPort = (AVRPortState*)t16->father_port;
         pPort->send_data(pPort);
@@ -276,9 +278,11 @@ static void avr_timer_8b_write(void *opaque, hwaddr addr, uint64_t value,
          * trigger an interrupt, when CNT is equal to the value here
          */
         t16->ocra = val8;
+        avr_timer_8b_toggle_pwm(t16);   // OCRA can also lead to a change! because it changes the frequency!
         break;
     case 4:     // OCRB
         t16->ocrb = val8;
+        avr_timer_8b_toggle_pwm(t16);   
         break;
     default:
         printf("Writing to AVR Timer 8b that is not defined??\n");

@@ -154,6 +154,7 @@ static void avr_port_send_data(void *opaque)
     }
 
     printf("Sent %lu bytes\n", data_ptr);
+    printf("------------------------\n");
     if(data_ptr > 0)
         qemu_chr_fe_write_all(&port->chr, data, data_ptr);  //send
 }

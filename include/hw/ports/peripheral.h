@@ -89,6 +89,9 @@ typedef struct
     uint8_t ifr;
     
     uint8_t last_pwm;
+    uint8_t last_ocra;
+    uint8_t last_ocrb;
+
     uint64_t cpu_freq_hz;
     uint64_t freq_hz;
     uint64_t period_ns;
