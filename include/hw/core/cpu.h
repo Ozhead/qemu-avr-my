@@ -377,6 +377,8 @@ struct CPUState {
     uint64_t random_seed;
     sigjmp_buf jmp_env;
 
+    unsigned int steps_to_execute;
+
     QemuMutex work_mutex;
     struct qemu_work_item *queued_work_first, *queued_work_last;
 

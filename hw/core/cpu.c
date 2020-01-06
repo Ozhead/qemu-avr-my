@@ -111,7 +111,7 @@ void cpu_reset_interrupt(CPUState *cpu, int mask)
 }
 
 void cpu_exit(CPUState *cpu)
-{
+{   
     atomic_set(&cpu->exit_request, 1);
     /* Ensure cpu_exec will see the exit request after TCG has exited.  */
     smp_wmb();

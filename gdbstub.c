@@ -23,6 +23,9 @@
  * SPDX-License-Identifier: LGPL-2.0+
  */
 
+//static int c = 0;
+
+#include <math.h>
 #include "qemu/osdep.h"
 #include "qemu-common.h"
 #include "qapi/error.h"
@@ -450,7 +453,7 @@ static inline void gdb_continue(GDBState *s)
  * Resume execution, per CPU actions. For user-mode emulation it's
  * equivalent to gdb_continue.
  */
-static int gdb_continue_partial(GDBState *s, char *newstates)
+static int gdb_continue_partial(GDBState *s, char *newstates, size_t steps)
 {
     CPUState *cpu;
     int res = 0;
@@ -471,6 +474,7 @@ static int gdb_continue_partial(GDBState *s, char *newstates)
 
     if (!runstate_needs_reset()) {
         if (vm_prepare_start()) {
+            printf("Restart?\n");
             return 0;
         }
 
@@ -480,6 +484,7 @@ static int gdb_continue_partial(GDBState *s, char *newstates)
             case 1:
                 break; /* nothing to do here */
             case 's':
+                cpu->steps_to_execute = steps;
                 trace_gdbstub_op_stepping(cpu->cpu_index);
                 cpu_single_step(cpu, sstep_flags);
                 cpu_resume(cpu);
@@ -1158,6 +1163,33 @@ static GDBThreadIdKind read_thread_id(const char *buf, const char **end_buf,
     return GDB_ONE_THREAD;
 }
 
+static size_t array_to_num(char * p, int len)
+{
+    size_t sum = 0;
+
+    int count = 0;
+    for(int i = len-1; i >= 0; i--)
+    {
+        char c = p[i];
+
+        if(c == 0)
+            continue;
+
+        if(c == '0')
+            continue;
+
+        //printf("%c\n", c);
+       // size_t x = (c - '0') * pow(10, count);;
+       // printf(" = %lu\n", x);
+
+        sum += (c - '0') * pow(10, count);
+        count++;
+    }
+
+    return sum;
+}
+
+
 /**
  * gdb_handle_vcont - Parses and handles a vCont packet.
  * returns -ENOTSUP if a command is unsupported, -EINVAL or -ERANGE if there is
@@ -1168,11 +1200,20 @@ static int gdb_handle_vcont(GDBState *s, const char *p)
     int res, signal = 0;
     char cur_action;
     char *newstates;
+    const size_t chars_step = 32;
+    char num_steps[chars_step];
+    size_t steps;
     unsigned long tmp;
     uint32_t pid, tid;
     GDBProcess *process;
     CPUState *cpu;
     GDBThreadIdKind kind;
+    unsigned int array_cnt;
+
+    memset(num_steps, 0, chars_step);
+    steps = 1;
+    //printf("Rcv gdb cmd: %s (%d)\n", p, c++);
+
 #ifdef CONFIG_USER_ONLY
     int max_cpus = 1; /* global variable max_cpus exists only in system mode */
 
@@ -1198,6 +1239,7 @@ static int gdb_handle_vcont(GDBState *s, const char *p)
      *  or incorrect parameters passed.
      */
     res = 0;
+
     while (*p) {
         if (*p++ != ';') {
             res = -ENOTSUP;
@@ -1216,6 +1258,22 @@ static int gdb_handle_vcont(GDBState *s, const char *p)
             /* unknown/invalid/unsupported command */
             res = -ENOTSUP;
             goto out;
+        }
+
+        if(cur_action == 's')
+        {
+            array_cnt = 0;
+            while(*p <= '9' && *p >= '0')
+            {
+                num_steps[array_cnt] = *p;
+                p++; array_cnt++;
+
+                if(array_cnt == chars_step)
+                    assert(false);
+            }
+
+            steps = array_to_num(num_steps, chars_step);
+            //printf("steps = %lu\n", steps);
         }
 
         if (*p == '\0' || *p == ';') {
@@ -1283,7 +1341,7 @@ static int gdb_handle_vcont(GDBState *s, const char *p)
         }
     }
     s->signal = signal;
-    gdb_continue_partial(s, newstates);
+    gdb_continue_partial(s, newstates, steps);
 
 out:
     g_free(newstates);
@@ -2640,9 +2698,10 @@ static void gdb_vm_state_change(void *opaque, int running, RunState state)
     }
 
     gdb_fmt_thread_id(s, cpu, thread_id, sizeof(thread_id));
-
+    //printf("Call\n");
     switch (state) {
     case RUN_STATE_DEBUG:
+        //printf("Test\n");
         if (cpu->watchpoint_hit) {
             switch (cpu->watchpoint_hit->flags & BP_MEM_ACCESS) {
             case BP_MEM_READ:
@@ -2670,6 +2729,7 @@ static void gdb_vm_state_change(void *opaque, int running, RunState state)
         ret = GDB_SIGNAL_TRAP;
         break;
     case RUN_STATE_PAUSED:
+        printf("Run_STATE PAUSED\n");
         trace_gdbstub_hit_paused();
         ret = GDB_SIGNAL_INT;
         break;

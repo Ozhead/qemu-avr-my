@@ -1567,14 +1567,22 @@ static void *qemu_tcg_rr_cpu_thread_fn(void *arg)
                               (cpu->singlestep_enabled & SSTEP_NOTIMER) == 0);
 
             if (cpu_can_run(cpu)) {
-                int r;
+                int r = 0;
 
                 qemu_mutex_unlock_iothread();
-                prepare_icount_for_run(cpu);
 
-                r = tcg_cpu_exec(cpu);
+                if(!cpu->singlestep_enabled || cpu->steps_to_execute <= 0)
+                    cpu->steps_to_execute = 1;
 
-                process_icount_data(cpu);
+                //printf("Executing %d steps!\n", cpu->steps_to_execute);
+                for(int i = 0; i < cpu->steps_to_execute; i++)
+                {
+                    prepare_icount_for_run(cpu);
+                    r = tcg_cpu_exec(cpu);
+                
+                    process_icount_data(cpu);
+
+                }
                 qemu_mutex_lock_iothread();
 
                 if (r == EXCP_DEBUG) {
@@ -1585,7 +1593,11 @@ static void *qemu_tcg_rr_cpu_thread_fn(void *arg)
                     cpu_exec_step_atomic(cpu);
                     qemu_mutex_lock_iothread();
                     break;
-                }
+                }        
+                else if(r == 0)
+                    assert(false);       
+
+
             } else if (cpu->stop) {
                 if (cpu->unplug) {
                     cpu = CPU_NEXT(cpu);

@@ -26,7 +26,7 @@ static int avr_port_can_receive(void *opaque)
 static void avr_port_receive(void *opaque, const uint8_t *buffer, int size)
 {
     size_t ptr = 0;
-    printf("Calling avr_port_receive %c(%d)\n", buffer[0], size);
+    //printf("Calling avr_port_receive %c(%d)\n", buffer[0], size);
     AVRPortState *port = opaque; 
     while(ptr != size)
     {
@@ -153,16 +153,18 @@ static void avr_port_send_data(void *opaque)
         
     }
 
-    printf("Sent %lu bytes\n", data_ptr);
-    printf("------------------------\n");
     if(data_ptr > 0)
+    {
         qemu_chr_fe_write_all(&port->chr, data, data_ptr);  //send
+        printf("Sent %lu bytes\n", data_ptr);
+        printf("------------------------\n");
+    }
 }
 
 static void avr_port_write(void *opaque, hwaddr addr, uint64_t value,
                                 unsigned int size)
 {
-	//printf("Port base write\n");
+	printf("Port base write\n");
     AVRPortState *port = opaque;
 
     switch(addr)
