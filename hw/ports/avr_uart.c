@@ -25,8 +25,9 @@ static void avr_uart_receive(void *opaque, const uint8_t *buffer, int msgid, int
 {
     AVRPeripheralState *usart = opaque;
     //assert(size == 1);
-    assert(!usart->data_valid);
+    //assert(!usart->data_valid);   // this may lead to the fact that it crashes when new data is received but not retrieved!
 
+    printf("UART Receive\n");
     if(pinno != usart->pinno_rx)
     {
         printf("Error: Trying to receive on a UART pin that is not set as RX\n");
@@ -38,8 +39,11 @@ static void avr_uart_receive(void *opaque, const uint8_t *buffer, int msgid, int
     usart->csra |= USART_CSRA_RXC;
     if (usart->csrb & USART_CSRB_RXCIE) 
     {
+        printf("Interrupt?\n");
         qemu_set_irq(usart->rxc_irq, 1);
     }
+    else 
+        printf("Interrupt not set!\n");
 }
 
 static void update_char_mask(AVRPeripheralState *usart)
@@ -314,9 +318,11 @@ static void avr_uart_init(Object *obj)
 {
     AVRPeripheralState *s = AVR_PERIPHERAL(obj);
     memory_region_init_io(&s->mmio, obj, &avr_uart_ops, s, TYPE_AVR_UART, 8);
+
     sysbus_init_irq(SYS_BUS_DEVICE(obj), &s->rxc_irq);
     sysbus_init_irq(SYS_BUS_DEVICE(obj), &s->dre_irq);
     sysbus_init_irq(SYS_BUS_DEVICE(obj), &s->txc_irq);
+    
     qdev_init_gpio_in(DEVICE(s), avr_uart_pr, 1);
     s->enabled = true;
 

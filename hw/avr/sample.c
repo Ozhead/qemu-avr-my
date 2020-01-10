@@ -86,9 +86,13 @@
 #define PORTD_BASE 0x29
 
 /* Interrupt numbers used by peripherals */
-#define USART_RXC_IRQ 24
+/*#define USART_RXC_IRQ 24
 #define USART_DRE_IRQ 25
-#define USART_TXC_IRQ 26
+#define USART_TXC_IRQ 26*/
+
+#define USART_RXC_IRQ 19
+#define USART_DRE_IRQ 20
+#define USART_TXC_IRQ 21
 
 /* ATMEGA2560 */
 #define TIMER1_CAPT_IRQ 15
@@ -240,7 +244,8 @@ static void sample_init(MachineState *machine)
 
     memory_region_allocate_system_memory(
         sms->ram, NULL, "avr.ram", SIZE_SRAM + SIZE_EXMEM);
-    memory_region_add_subregion(system_memory, OFFSET_DATA + 0x200, sms->ram);
+    //memory_region_add_subregion(system_memory, OFFSET_DATA + 0x200, sms->ram);
+    memory_region_add_subregion(system_memory, OFFSET_DATA + 0x100, sms->ram);      // CAUTION TOO: Here the offset (0x100) must be set correctly, too. Or else global data won't work. (IO register are 0xFF long => 0x100 starts data register)
 
     /* Power Reduction built-in peripheral */
     sms->prr[0] = AVR_MASK(sysbus_create_simple(TYPE_AVR_MASK,
@@ -337,6 +342,11 @@ static void sample_init(MachineState *machine)
 
     busdev = SYS_BUS_DEVICE(sms->uart0);
     sysbus_mmio_map(busdev, 0, OFFSET_DATA + USART_BASE);
+
+    sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(cpudev, USART_RXC_IRQ));
+    sysbus_connect_irq(busdev, 1, qdev_get_gpio_in(cpudev, USART_DRE_IRQ));
+    sysbus_connect_irq(busdev, 2, qdev_get_gpio_in(cpudev, USART_TXC_IRQ));
+
     object_property_set_bool(OBJECT(sms->uart0), true, "realized",
         &error_fatal);
 
