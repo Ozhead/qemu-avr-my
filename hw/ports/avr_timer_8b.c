@@ -205,6 +205,23 @@ static inline void avr_timer_8b_recalc_reset_time(AVRPeripheralState *t16)
 
 static uint64_t avr_timer_8b_read(void *opaque, hwaddr addr, unsigned int size)
 {
+    AVRPeripheralState *p = opaque;
+
+    switch(addr)
+    {
+        case 0: //CRA
+            return p->cra;
+        case 1: // CRB
+            return p->crb;
+        case 2: // TCNT
+            return p->cnt;
+        case 3: // OCRA
+            return p->ocra;
+        case 4: // OCRB
+            return p->ocrb;
+        default:
+            printf("Error: Wrong Hardware ID in Counter 8b\n");
+    }
     return 0;
 }
 
@@ -343,11 +360,13 @@ static uint32_t avr_timer_8b_serialize(void * opaque, uint32_t pinno, uint8_t * 
     {
         hdr = 0b01100100;
         mode = (t16->cra & 0b11000000) >> 6;
+        printf("Pin3 Mode set to %d\n", mode);
     }
     else if(pinno == 4)
     {
         hdr = 0b10000100;
         mode = (t16->cra & 0b00110000) >> 4;
+        printf("Pin4 Mode = %d\n", mode);
     }
     else
     {
@@ -360,7 +379,9 @@ static uint32_t avr_timer_8b_serialize(void * opaque, uint32_t pinno, uint8_t * 
 
     if(mode == 0)
     {
+        printf("CRA = %d", t16->cra);
         printf("MODE 0 LOL => disabled\n");
+        return 0;
     }
     else if(mode == 1)
     {

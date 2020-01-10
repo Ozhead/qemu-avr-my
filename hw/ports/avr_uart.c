@@ -26,6 +26,13 @@ static void avr_uart_receive(void *opaque, const uint8_t *buffer, int msgid, int
     AVRPeripheralState *usart = opaque;
     //assert(size == 1);
     assert(!usart->data_valid);
+
+    if(pinno != usart->pinno_rx)
+    {
+        printf("Error: Trying to receive on a UART pin that is not set as RX\n");
+        return;
+    }
+
     usart->data = buffer[0];
     usart->data_valid = true;
     usart->csra |= USART_CSRA_RXC;
@@ -245,6 +252,13 @@ static uint32_t avr_uart_serialize(void * opaque, uint32_t pinno, uint8_t * pDat
 {
     //uint8_t hdr, data;
     AVRPeripheralState *usart = opaque;
+
+    if(pinno != usart->pinno_tx)
+    {
+        printf("Error: Trying to send over a UART Pin that is not set as TX\n");
+        return 0;
+    }
+
     printf("AVR UART SERIALIZE\n");
     uint8_t hdr = pinno << 5;
     hdr |= 2;   //encoding UART...
@@ -305,6 +319,9 @@ static void avr_uart_init(Object *obj)
     sysbus_init_irq(SYS_BUS_DEVICE(obj), &s->txc_irq);
     qdev_init_gpio_in(DEVICE(s), avr_uart_pr, 1);
     s->enabled = true;
+
+    s->pinno_tx = -1;
+    s->pinno_rx = -1;
 
     printf("AVR UART object init\n");
 }

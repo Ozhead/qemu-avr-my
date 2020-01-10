@@ -287,6 +287,7 @@ static void sample_init(MachineState *machine)
     object_property_set_bool(OBJECT(sms->adc), true, "realized",
         &error_fatal);
     sms->porta->name = 'A';
+    sms->porta->finalize(sms->porta);
     printf("Port A initiated\n");
 
     /* PORT B */
@@ -315,6 +316,9 @@ static void sample_init(MachineState *machine)
     object_property_set_bool(OBJECT(sms->timer0), true, "realized",
         &error_fatal);
 
+    sms->portb->finalize(sms->portb);
+    printf("Port B initiated\n");
+
     /* PORT D */
     sms->portd = AVR_PORT(object_new(TYPE_AVR_PORT));
     busdev = SYS_BUS_DEVICE(sms->portd);
@@ -336,6 +340,11 @@ static void sample_init(MachineState *machine)
     object_property_set_bool(OBJECT(sms->uart0), true, "realized",
         &error_fatal);
 
+    // set USART RX & TX Pins
+    sms->uart0->pinno_rx = 0;
+    sms->uart0->pinno_tx = 1;
+
+    sms->portd->finalize(sms->portd);
     printf("Port D initiated\n---------------------------------\n");
 
     /* Timer 1 built-in periphal */

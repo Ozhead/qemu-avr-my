@@ -70,6 +70,7 @@ static void avr_peripheral_init(Object *obj)
                              s, NULL, true);
     avr_peripheral_reset(dev);
 }*/
+
 static uint32_t avr_peripheral_serialize(void * opaque, uint32_t pinno, uint8_t * pData)
 {
     assert(false);

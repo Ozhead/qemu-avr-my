@@ -485,6 +485,7 @@ static int gdb_continue_partial(GDBState *s, char *newstates, size_t steps)
                 break; /* nothing to do here */
             case 's':
                 cpu->steps_to_execute = steps;
+                //printf("Set steps to %lu\n", steps);
                 trace_gdbstub_op_stepping(cpu->cpu_index);
                 cpu_single_step(cpu, sstep_flags);
                 cpu_resume(cpu);
@@ -1212,7 +1213,7 @@ static int gdb_handle_vcont(GDBState *s, const char *p)
 
     memset(num_steps, 0, chars_step);
     steps = 1;
-    //printf("Rcv gdb cmd: %s (%d)\n", p, c++);
+    //printf("Rcv gdb cmd: %s\n", p);
 
 #ifdef CONFIG_USER_ONLY
     int max_cpus = 1; /* global variable max_cpus exists only in system mode */

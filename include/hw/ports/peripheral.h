@@ -55,6 +55,9 @@ typedef struct
     uint8_t brrh;
     uint8_t brrl;
 
+    int16_t pinno_rx;
+    int16_t pinno_tx;
+
     /* Receive Complete */
     qemu_irq rxc_irq;
     /* Transmit Complete */
