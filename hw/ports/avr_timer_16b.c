@@ -419,9 +419,9 @@ static void avr_timer_16b_set_alarm(AVRPeripheralState *t16)
         alarm_offset = OCRB(t16);
         next_interrupt = INTERRUPT_COMPB;
     }
-    if (OCRC(t16) < alarm_offset && OCRB(t16) > CNT(t16) &&
+    if (OCRC(t16) < alarm_offset && OCRC(t16) > CNT(t16) &&
         (t16->imsk & T16_INT_OCC)) {
-        alarm_offset = OCRB(t16);
+        alarm_offset = OCRC(t16);
         next_interrupt = INTERRUPT_COMPC;
     }
     alarm_offset -= CNT(t16);
