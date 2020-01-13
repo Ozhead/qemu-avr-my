@@ -6,6 +6,9 @@
 
 #define ADCEN (1 << 7)
 #define ADLAR (1 << 5)
+#define ADIE  (1 << 3)
+#define ADIF  (1 << 4)
+#define ADSC  (1 << 6)
 
 static void adc_convert(void * opaque)
 {       
@@ -57,7 +60,15 @@ static void adc_convert(void * opaque)
         final = final >> 6;
     
     p->adc = final;     //only take lower 10 bits!
+    p->adcsra |= ADIF;  // set ADIF flag to 1
     printf("ADC = %i\n", (int)p->adc);
+
+    p->adcsra &= ~ADSC; // set ADSC flag to 0 to signalize a finished conversion!
+    if(p->adcsra & ADIE)
+    {
+        qemu_set_irq(p->adc_conv_irq, 1);
+        p->adcsra &= ~ADIF;  // set it to 0 afterwards
+    }
 }
 
 static int avr_adc_can_receive(void *opaque)
@@ -65,7 +76,7 @@ static int avr_adc_can_receive(void *opaque)
     AVRPeripheralState *p = opaque;
 
     // if ADC is enabled, it generally CAN receive something...
-    if(p->adcsr & ADCEN)
+    if(p->adcsra & ADCEN)
 	    return 9;       // it is supposed to be a float! 8+1
 
     return 0;
@@ -73,10 +84,9 @@ static int avr_adc_can_receive(void *opaque)
 
 static int avr_adc_is_active(void *opaque, uint32_t pinno)
 {
-    printf("AVR ADC IS ACTIVE\n");
     AVRPeripheralState *p = opaque;
 
-    if(p->adcsr & ADCEN)
+    if(p->adcsra & ADCEN)
     {
         // TODO: Add further possibilites from datasheet!
         if((p->admux & 0b00011111) == pinno)
@@ -92,7 +102,7 @@ static int avr_adc_is_active(void *opaque, uint32_t pinno)
 static void avr_adc_receive(void *opaque, const uint8_t *buffer, int msgid, int pinno)
 {
     AVRPeripheralState *p = opaque;
-	printf("Calling avr_adc_receive %d\n", msgid);
+	//printf("Calling avr_adc_receive %d\n", msgid);
     assert(msgid == 8);  //TODO
     // float convert to int in ADC!
     double val;
@@ -101,18 +111,19 @@ static void avr_adc_receive(void *opaque, const uint8_t *buffer, int msgid, int 
     printf("Recv V = %5.2fV\n", val);
     p->adc_voltages[pinno] = val;
 
-    if(avr_adc_is_active(opaque, pinno))
+    /*if(avr_adc_is_active(opaque, pinno))
     {
-        //printf("We should be setting it now correctly!");
+        printf("We should be setting it now correctly!");
         adc_convert(opaque);
-    }
+    }*/
 }
 
-/*static void avr_adc_reset(DeviceState *dev)
+static void avr_adc_reset(DeviceState *dev)
 {
-    printf("AVR reset\n");
 	//AVRPeripheralState *port = AVR_PERIPHERAL(dev);
-}*/
+    AVRPeripheralState * adc = AVR_ADC(dev);
+    qemu_set_irq(adc->adc_conv_irq, 0);
+}
 
 static uint64_t avr_adc_read(void *opaque, hwaddr addr, unsigned int size)
 {
@@ -121,7 +132,9 @@ static uint64_t avr_adc_read(void *opaque, hwaddr addr, unsigned int size)
     switch(addr)
     {
         case 2:
-            return p->adcsr;
+            return p->adcsra;
+        case 3:
+            return p->adcsrb;
         case 4:
             return p->admux;
         case 0: //ADCL
@@ -139,23 +152,25 @@ static void avr_adc_write(void *opaque, hwaddr addr, uint64_t value,
                                 unsigned int size)
 {
     AVRPeripheralState *p = opaque;
-	printf("addr = %i\n", (int)addr);
+	//printf("addr = %i\n", (int)addr);
 
     switch(addr)
     {
         case 2:
-            p->adcsr = value;
+            p->adcsra = value;
+            if(p->adcsra & ADSC)
+                adc_convert(p);
+            break;
+        case 3:
+            p->adcsrb = value;
             break;
         case 4:
             p->admux = value;
-            adc_convert(opaque);
             break;
         default:
             printf("NOT IMPLEMENTED ADC %i\n", (int)addr);
             assert(false);
     }
-
-    printf("ADC write done\n");
 }
 
 
@@ -164,11 +179,16 @@ static void avr_adc_write(void *opaque, hwaddr addr, uint64_t value,
     //DEFINE_PROP_END_OF_LIST(),
 //};
 
-//static void avr_adc_pr(void *opaque, int irq, int level)
-//{
-    //printf("adc PR\n");
-    //AVRPeripheralState *s = AVR_PERIPHERAL(opaque);
-//}
+static void avr_adc_pr(void *opaque, int irq, int level)
+{
+    AVRPeripheralState *s = AVR_ADC(opaque);
+
+    s->enabled = !level;
+
+    if (!s->enabled) {
+        avr_adc_reset(DEVICE(s));
+    }
+}
 
 //static void avr_adc_init(Object *obj)
 //{
@@ -199,12 +219,12 @@ static uint32_t avr_adc_serialize(void * opaque, uint32_t pinno, uint8_t * pData
 
 static void avr_adc_class_init(ObjectClass *klass, void *data)
 {
-    //DeviceClass *dc = DEVICE_CLASS(klass);
+    DeviceClass *dc = DEVICE_CLASS(klass);
     AVRPeripheralClass *pc = AVR_PERIPHERAL_CLASS(klass);
     AVRADCClass * adc = AVR_ADC_CLASS(klass);
 
-    /*dc->reset = avr_peripheral_reset;
-    dc->props = avr_peripheral_properties;
+    dc->reset = avr_adc_reset; 
+    /*dc->props = avr_peripheral_properties;
     dc->realize = avr_peripheral_realize;*/
   
     adc->parent_can_receive = pc->can_receive;
@@ -242,8 +262,9 @@ static void avr_adc_init(Object *obj)
     memory_region_init_io(&s->mmio, obj, &avr_peripheral_ops, s, TYPE_AVR_PERIPHERAL, 8);
     sysbus_init_mmio(SYS_BUS_DEVICE(obj), &s->mmio);
     qdev_init_gpio_in(DEVICE(s), avr_peripheral_pr, 1);*/
-    //s->enabled = true;
-    printf("AVR ADC object init\n");
+    sysbus_init_irq(SYS_BUS_DEVICE(obj), &s->adc_conv_irq);
+    qdev_init_gpio_in(DEVICE(s), avr_adc_pr, 1);
+    s->enabled = true;
 }
 
 static const TypeInfo avr_adc_info = {

@@ -170,8 +170,8 @@ static void avr_port_send_data(void *opaque)
 static void avr_port_write(void *opaque, hwaddr addr, uint64_t value,
                                 unsigned int size)
 {
-	printf("Port base write\n");
     AVRPortState *port = opaque;
+	printf("Port base write %c\n", port->name);
 
     switch(addr)
 	{
