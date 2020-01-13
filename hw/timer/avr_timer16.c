@@ -108,6 +108,7 @@
 #define DB_PRINT(fmt, args...) /* Nothing */
 /*#define DB_PRINT(fmt, args...) printf("%s: " fmt "\n", __func__, ## args)*/
 
+
 static inline int64_t avr_timer16_ns_to_ticks(AVRTimer16State *t16, int64_t t)
 {
     if (t16->period_ns == 0) {

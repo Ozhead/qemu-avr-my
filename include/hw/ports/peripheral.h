@@ -25,6 +25,8 @@ typedef struct AVRPortState AVRPortState_t;
 #define INTERRUPT_OVERFLOW 0
 #define INTERRUPT_COMPA 1
 #define INTERRUPT_COMPB 2
+#define INTERRUPT_COMPC 3
+#define INTERRUPT_CAPT  4
 
 
 typedef struct 
@@ -76,24 +78,41 @@ typedef struct
 
     /* Timer 0 Start */
     QEMUTimer *timer;
+    qemu_irq capt_irq; // only 16b timer
     qemu_irq compa_irq;
     qemu_irq compb_irq;
+    qemu_irq compc_irq;
     qemu_irq ovf_irq;
 
-    /* registers */
+    /* registers 8bit */
     uint8_t cra;        // TCCR0A
     uint8_t crb;        // TCCR0B
     uint8_t cnt;        // TCNT0
     uint8_t ocra;       // OCR0A
     uint8_t ocrb;       // OCR0B
 
+    /* 16 bit: */
+    uint8_t crc;
+    uint8_t cntl;
+    uint8_t cnth;
+    uint8_t ocral;
+    uint8_t ocrah;
+    uint8_t ocrbl;
+    uint8_t ocrbh;
+    uint8_t ocrcl;
+    uint8_t ocrch;
+    uint8_t icrl;
+    uint8_t icrh;
+
     uint8_t rtmp;
     uint8_t imsk;
     uint8_t ifr;
     
+    uint8_t last_mode;
     uint8_t last_pwm;
-    uint8_t last_ocra;
-    uint8_t last_ocrb;
+    uint16_t last_ocra;
+    uint16_t last_ocrb;
+    uint8_t prev_clk_src;
 
     uint64_t cpu_freq_hz;
     uint64_t freq_hz;

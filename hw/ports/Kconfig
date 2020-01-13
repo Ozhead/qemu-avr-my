@@ -14,4 +14,7 @@ config AVR_UART
     bool
 
 config AVR_TIMER_8b
-    bool
+	bool
+
+config AVR_TIMER_16b
+	bool

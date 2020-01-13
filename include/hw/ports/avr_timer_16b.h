@@ -1,22 +1,22 @@
-#ifndef HW_AVR_TIMER_8b_H
-#define HW_AVR_TIMER_8b_H
+#ifndef HW_AVR_TIMER_16b_H
+#define HW_AVR_TIMER_16b_H
 
 #include "hw/sysbus.h"
 #include "chardev/char-fe.h"
 #include "hw/hw.h"
 #include "hw/ports/peripheral.h"
 
-#define TYPE_AVR_TIMER_8b "avr-timer-8b"
+#define TYPE_AVR_TIMER_16b "avr-timer-16b"
 
-#define AVR_TIMER_8b(obj) \
-    OBJECT_CHECK(AVRPeripheralState, (obj), TYPE_AVR_TIMER_8b)
-#define AVR_TIMER_8b_GET_CLASS(obj) \
-    OBJECT_GET_CLASS(AVRTimer8bClass, obj, TYPE_AVR_TIMER_8b)
-#define AVR_TIMER_8b_CLASS(klass) \
-    OBJECT_CLASS_CHECK(AVRTimer8bClass, klass, TYPE_AVR_TIMER_8b)
+#define AVR_TIMER_16b(obj) \
+    OBJECT_CHECK(AVRPeripheralState, (obj), TYPE_AVR_TIMER_16b)
+#define AVR_TIMER_16b_GET_CLASS(obj) \
+    OBJECT_GET_CLASS(AVRTimer16bClass, obj, TYPE_AVR_TIMER_16b)
+#define AVR_TIMER_16b_CLASS(klass) \
+    OBJECT_CLASS_CHECK(AVRTimer16bClass, klass, TYPE_AVR_TIMER_16b)
 
 
- typedef struct AVRTimer8bClass
+ typedef struct AVRTimer16bClass
  {
     AVRPeripheralClass parent_class;
 
@@ -32,8 +32,6 @@
     Read parent_read_imsk;
     Write parent_write_ifr;
     Write parent_write_imsk;
- } AVRTimer8bClass;
-
-
+ } AVRTimer16bClass;
 
 #endif

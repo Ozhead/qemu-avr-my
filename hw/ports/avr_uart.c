@@ -9,7 +9,8 @@ static int avr_uart_can_receive(void *opaque)
 {
     AVRPeripheralState *usart = opaque;
 
-    if (usart->data_valid || !(usart->csrb & USART_CSRB_RXEN)) {
+    if (usart->data_valid || !(usart->csrb & USART_CSRB_RXEN)) 
+    {
         return 0;
     }
     return 1;
@@ -17,8 +18,19 @@ static int avr_uart_can_receive(void *opaque)
 
 static int avr_uart_is_active(void *opaque, uint32_t pinno)
 {
-    printf("UART is active\n");
-    return 1;
+    //printf("UART is active\n");
+    AVRPeripheralState *usart = opaque;
+    if(pinno == usart->pinno_rx && usart->csrb & USART_CSRB_RXEN)
+    {
+        return 1;
+    }
+    else if(pinno == usart->pinno_tx && usart->csrb & USART_CSRB_TXEN)
+    {
+        return 1;
+    }
+
+    printf("UART is disabled\n");
+    return 0;
 }
 
 static void avr_uart_receive(void *opaque, const uint8_t *buffer, int msgid, int pinno)

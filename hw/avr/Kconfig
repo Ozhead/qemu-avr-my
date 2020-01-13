@@ -5,3 +5,11 @@ config AVR_SAMPLE
     select AVR_MASK
     select UNIMP
     select AVR_GPIO
+
+config AVR_MEGA2560
+    bool
+    select AVR_TIMER16
+    select AVR_USART
+    select AVR_MASK
+    select UNIMP
+    select AVR_GPIO

@@ -45,13 +45,12 @@
 #include "exec/address-spaces.h"
 #include "include/hw/sysbus.h"
 #include "include/hw/char/avr_usart.h"
-//#include "include/hw/timer/avr_timer16.h"
+#include "include/hw/timer/avr_timer16.h"
 #include "include/hw/misc/avr_mask.h"
 #include "include/hw/ports/avr_gpio.h"
 #include "include/hw/ports/avr_port.h"
 #include "include/hw/ports/avr_uart.h"
 #include "include/hw/ports/avr_timer_8b.h"
-#include "include/hw/ports/avr_timer_16b.h"
 #include "elf.h"
 #include "hw/misc/unimp.h"
 #include "include/hw/ports/adc.h"
@@ -74,11 +73,9 @@
 #define PRR0_BASE 0x64
 #define PRR1_BASE 0x65
 #define USART_BASE 0xc0
-
 #define TIMER1_BASE 0x80
-#define TIMER1_IMSK_BASE 0x6F
+#define TIMER1_IMSK_BASE 0x6f
 #define TIMER1_IFR_BASE 0x36
-
 #define TIMER0_BASE 0x44
 #define TIMER0_IMSK_BASE 0x6E
 #define TIMER0_IFR_BASE 0x35
@@ -97,12 +94,12 @@
 #define USART_DRE_IRQ 20
 #define USART_TXC_IRQ 21
 
-/* ATMEGA1284P */
-#define TIMER1_CAPT_IRQ 11
-#define TIMER1_COMPA_IRQ 12
-#define TIMER1_COMPB_IRQ 13
-//#define TIMER1_COMPC_IRQ 18
-#define TIMER1_OVF_IRQ 14
+/* ATMEGA2560 */
+#define TIMER1_CAPT_IRQ 15
+#define TIMER1_COMPA_IRQ 16
+#define TIMER1_COMPB_IRQ 17
+#define TIMER1_COMPC_IRQ 18
+#define TIMER1_OVF_IRQ 19
 
 /* ATMEGA1284P */
 #define TIMER0_COMPA_IRQ 15
@@ -127,14 +124,14 @@
 
 typedef struct {
     MachineClass parent;
-} SampleMachineClass;
+} Mega2560MachineClass;
 
 typedef struct {
     MachineState parent;
     MemoryRegion *ram;
     MemoryRegion *flash;
     AVRUsartState *usart0;
-    //AVRTimer16State *timer1;
+    AVRTimer16State *timer1;
     AVRMaskState *prr[2];
 	
     /* PORT A */
@@ -149,21 +146,20 @@ typedef struct {
     /* PORT D */
     AVRPortState * portd;
     AVRPeripheralState * uart0;
-    AVRPeripheralState * timer1;
-} SampleMachineState;
+} Mega2560MachineState;
 
-#define TYPE_SAMPLE_MACHINE MACHINE_TYPE_NAME("sample")
+#define TYPE_MEGA2560_MACHINE MACHINE_TYPE_NAME("mega2560")
 
-#define SAMPLE_MACHINE(obj) \
-    OBJECT_CHECK(SampleMachineState, obj, TYPE_SAMPLE_MACHINE)
-#define SAMPLE_MACHINE_GET_CLASS(obj) \
-    OBJECT_GET_CLASS(SampleMachineClass, obj, TYPE_SAMPLE_MACHINE)
-#define SAMPLE_MACHINE_CLASS(klass) \
-    OBJECT_CLASS_CHECK(SampleMachineClass, klass, TYPE_SAMPLE_MACHINE)
+#define MEGA2560_MACHINE(obj) \
+    OBJECT_CHECK(Mega2560MachineState, obj, TYPE_MEGA2560_MACHINE)
+#define MEGA2560_MACHINE_GET_CLASS(obj) \
+    OBJECT_GET_CLASS(Mega2560MachineClass, obj, TYPE_MEGA2560_MACHINE)
+#define MEGA2560_MACHINE_CLASS(klass) \
+    OBJECT_CLASS_CHECK(Mega2560MachineClass, klass, TYPE_MEGA2560_MACHINE)
 
-static void sample_init(MachineState *machine)
+static void mega2560_init(MachineState *machine)
 {
-    SampleMachineState *sms = SAMPLE_MACHINE(machine);
+    Mega2560MachineState *sms = MEGA2560_MACHINE(machine);
     MemoryRegion *system_memory = get_system_memory();
     AVRCPU *cpu;
     const char *firmware = NULL;
@@ -358,29 +354,10 @@ static void sample_init(MachineState *machine)
     sms->uart0->pinno_rx = 0;
     sms->uart0->pinno_tx = 1;
 
-    /* timer 1 */
-    sms->timer1 = AVR_TIMER_16b(object_new(TYPE_AVR_TIMER_16b));
-    AVRPeripheralClass *pc3 = AVR_PERIPHERAL_GET_CLASS(sms->timer1);
-    add_peripheral_to_port(sms->portd, pc3, sms->timer1);
-    map_peripheral_to_pin(sms->portd, pc3, sms->timer1, 4);
-    map_peripheral_to_pin(sms->portd, pc3, sms->timer1, 5);
-
-    busdev = SYS_BUS_DEVICE(sms->timer1);
-    sysbus_mmio_map(busdev, 0, OFFSET_DATA + TIMER1_BASE);
-    sysbus_mmio_map(busdev, 1, OFFSET_DATA + TIMER1_IMSK_BASE);
-    sysbus_mmio_map(busdev, 2, OFFSET_DATA + TIMER1_IFR_BASE);
-    sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(cpudev, TIMER1_CAPT_IRQ));
-    sysbus_connect_irq(busdev, 1, qdev_get_gpio_in(cpudev, TIMER1_COMPA_IRQ));
-    sysbus_connect_irq(busdev, 2, qdev_get_gpio_in(cpudev, TIMER1_COMPB_IRQ));
-    sysbus_connect_irq(busdev, 3, qdev_get_gpio_in(cpudev, TIMER1_COMPA_IRQ));  // Atmega1284p does not have a COMPC interrupt, so we just remap it to COMPA
-    sysbus_connect_irq(busdev, 4, qdev_get_gpio_in(cpudev, TIMER1_OVF_IRQ));
-    object_property_set_bool(OBJECT(sms->timer1), true, "realized",
-        &error_fatal);
-
     sms->portd->finalize(sms->portd);
     printf("Port D initiated\n---------------------------------\n");
 
-    /* Timer 1 built-in periphal OLD CODE*/
+    /* Timer 1 built-in periphal */
     
     /*sms->timer1 = AVR_TIMER16(object_new(TYPE_AVR_TIMER16));
     object_property_set_bool(OBJECT(sms->timer1), true, "realized",
@@ -415,30 +392,30 @@ static void sample_init(MachineState *machine)
     }
 }
 
-static void sample_class_init(ObjectClass *oc, void *data)
+static void mega2560_class_init(ObjectClass *oc, void *data)
 {
     MachineClass *mc = MACHINE_CLASS(oc);
 
-    mc->desc = "ATMega1284p";
-    mc->init = sample_init;
+    mc->desc = "ATMega2560";
+    mc->init = mega2560_init;
     mc->default_cpus = 1;
     mc->min_cpus = mc->default_cpus;
     mc->max_cpus = mc->default_cpus;
-    mc->default_cpu_type = "avr51-avr-cpu"; /* ATmega1284p. */
-    mc->is_default = 1;
+    mc->default_cpu_type = "avr6-avr-cpu"; /* ATmega2560. */
+    mc->is_default = 0;
 }
 
-static const TypeInfo sample_info = {
-    .name = TYPE_SAMPLE_MACHINE,
+static const TypeInfo mega2560_info = {
+    .name = TYPE_MEGA2560_MACHINE,
     .parent = TYPE_MACHINE,
-    .instance_size = sizeof(SampleMachineState),
-    .class_size = sizeof(SampleMachineClass),
-    .class_init = sample_class_init,
+    .instance_size = sizeof(Mega2560MachineState),
+    .class_size = sizeof(Mega2560MachineClass),
+    .class_init = mega2560_class_init,
 };
 
-static void sample_machine_init(void)
+static void mega2560_machine_init(void)
 {
-    type_register_static(&sample_info);
+    type_register_static(&mega2560_info);
 }
 
-type_init(sample_machine_init);
+type_init(mega2560_machine_init);

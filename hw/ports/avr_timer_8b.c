@@ -45,7 +45,7 @@ static int avr_timer_8b_can_receive(void *opaque)
 // if PWM is active or pin somehow other used...
 static int avr_timer_8b_is_active(void *opaque, uint32_t pinno)
 {
-    printf("Timer is active on Pin %d\n", pinno);
+    printf("Call Timer is active on Pin %d\n", pinno);
     AVRPeripheralState *t16 = opaque;
 
     if (CLKSRC(t16) == T16_CLKSRC_EXT_FALLING ||
@@ -251,21 +251,30 @@ static void avr_timer_8b_write(void *opaque, hwaddr addr, uint64_t value,
     AVRPeripheralState *t16 = opaque;
     uint8_t val8 = (uint8_t)value;
     uint8_t prev_clk_src = CLKSRC(t16);
+    uint8_t last_cra;
+    uint8_t last_crb;
 
     //printf("write %d to addr %d\n", val8, (uint8_t)addr);
 
     switch (addr) 
     {
     case 0:     // CRA
+        last_cra = t16->cra;
         t16->cra = val8;
         if (t16->cra & 0b11110000) 
         {
             printf("output compare pins unsupported\n");
         }
-        avr_timer_8b_toggle_pwm(t16);
+        if(last_cra != t16->cra)
+            avr_timer_8b_toggle_pwm(t16);
         break;
     case 1:     // CRB
+        last_crb = t16->crb;
         t16->crb = val8;
+
+        // changing clocko 
+        if(t16->crb != last_crb)
+            avr_timer_8b_toggle_pwm(t16);
 
         if (CLKSRC(t16) != prev_clk_src) 
         {
@@ -274,10 +283,11 @@ static void avr_timer_8b_write(void *opaque, hwaddr addr, uint64_t value,
                 t16->reset_time_ns = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
             }
 
-            if(CLKSRC(t16) == T16_CLKSRC_STOPPED && prev_clk_src != T16_CLKSRC_STOPPED)
+            // disabling the clock...
+            /*if(CLKSRC(t16) == T16_CLKSRC_STOPPED && prev_clk_src != T16_CLKSRC_STOPPED)
             {
                 avr_timer_8b_toggle_pwm(t16);
-            }
+            }*/
         }
         break;
     case 2:     // CNT
@@ -381,11 +391,12 @@ static uint32_t avr_timer_8b_serialize(void * opaque, uint32_t pinno, uint8_t * 
     {
         printf("CRA = %d", t16->cra);
         printf("MODE 0 LOL => disabled\n");
-        return 0;
+        //return 0;
     }
     else if(mode == 1)
     {
         printf("Mode 1 for CMPA not enabled\n");
+        return 0;
     }
     else if(mode == 3)
         val = (double)(top + 1) / 256.0;
@@ -539,7 +550,7 @@ static void avr_timer_8b_class_init(ObjectClass *klass, void *data)
     pc->write_imsk = avr_timer_8b_write_imsk;
     pc->read_ifr = avr_timer_8b_read_ifr;
     pc->read_imsk = avr_timer_8b_read_imsk;
-    printf("ADC class initiated\n");
+    printf("Timer 8b initiated\n");
 }
 
 
@@ -573,7 +584,7 @@ static void avr_timer_8b_init(Object *obj)
     sysbus_init_irq(SYS_BUS_DEVICE(obj), &s->ovf_irq);
 
 
-    memory_region_init_io(&s->mmio, obj, &avr_timer_8b_ops, s, TYPE_AVR_TIMER_8b, 8);
+    memory_region_init_io(&s->mmio, obj, &avr_timer_8b_ops, s, TYPE_AVR_TIMER_8b, 8);       // TODO: this should be 5?
 
     memory_region_init_io(&s->mmio_imsk, obj, &avr_timer_8b_imsk_ops,
                           s, TYPE_AVR_TIMER_8b, 0x1);
