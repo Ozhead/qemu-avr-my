@@ -102,6 +102,7 @@ static void avr_port_send_data(void *opaque)
     memset(data, 0, 4096);
     AVRPortState *port = opaque;
 
+    printf("===========START=SEND=================>\n");
     printf("Try to send Data of Port %c\n", port->name);
     for(uint32_t i = 0; i < NUM_PINS; i++)
     {
@@ -163,8 +164,8 @@ static void avr_port_send_data(void *opaque)
     {
         qemu_chr_fe_write_all(&port->chr, data, data_ptr);  //send
         printf("Sent %lu bytes\n", data_ptr);
-        printf("------------------------\n");
     }
+    printf("<============STOP=SEND================\n");
 }
 
 static void avr_port_write(void *opaque, hwaddr addr, uint64_t value,
