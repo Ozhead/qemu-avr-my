@@ -588,7 +588,7 @@ static void avr_timer_8b_init(Object *obj)
     sysbus_init_irq(SYS_BUS_DEVICE(obj), &s->ovf_irq);
 
 
-    memory_region_init_io(&s->mmio, obj, &avr_timer_8b_ops, s, TYPE_AVR_TIMER_8b, 8);       // TODO: this should be 5?
+    memory_region_init_io(&s->mmio, obj, &avr_timer_8b_ops, s, TYPE_AVR_TIMER_8b, 5); 
 
     memory_region_init_io(&s->mmio_imsk, obj, &avr_timer_8b_imsk_ops,
                           s, TYPE_AVR_TIMER_8b, 0x1);
