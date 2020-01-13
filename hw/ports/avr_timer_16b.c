@@ -658,6 +658,8 @@ static void avr_timer_16b_write(void *opaque, hwaddr offset,
     uint8_t val8 = (uint8_t)val64;
     t16->prev_clk_src = CLKSRC(t16);
 
+    AVRPortState * pPort = (AVRPortState*)t16->father_port;
+    printf("Timer16 write of Port %c\n", pPort->name);
     DB_PRINT("write %d to offset %d", val8, (uint8_t)offset);
 
     switch (offset) {
