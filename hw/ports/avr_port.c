@@ -231,7 +231,7 @@ static void avr_port_pr(void *opaque, int irq, int level)
 static void avr_port_init(Object *obj)
 {
     AVRPortState *s = AVR_PORT(obj);
-    memory_region_init_io(&s->mmio, obj, &avr_port_ops, s, TYPE_AVR_PORT, 8);
+    memory_region_init_io(&s->mmio, obj, &avr_port_ops, s, TYPE_AVR_PORT, 3);
     sysbus_init_mmio(SYS_BUS_DEVICE(obj), &s->mmio);
     qdev_init_gpio_in(DEVICE(s), avr_port_pr, 1);
 
