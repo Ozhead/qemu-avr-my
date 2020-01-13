@@ -47,6 +47,7 @@ static void avr_uart_receive(void *opaque, const uint8_t *buffer, int msgid, int
     }
 
     usart->data = buffer[0];
+    printf("Received UART data: %d\n", buffer[0]);
     usart->data_valid = true;
     usart->csra |= USART_CSRA_RXC;
     if (usart->csrb & USART_CSRB_RXCIE) 
@@ -129,6 +130,7 @@ static uint64_t avr_uart_read(void *opaque, hwaddr addr, unsigned int size)
     case USART_DR:
         if (!(usart->csrb & USART_CSRB_RXEN)) {
             /* Receiver disabled, ignore. */
+            printf("Receiver disabled... Returning 0 @ read access\n");
             return 0;
         }
         if (usart->data_valid) {
