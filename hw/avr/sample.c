@@ -135,7 +135,7 @@ typedef struct {
     MachineState parent;
     MemoryRegion *ram;
     MemoryRegion *flash;
-    AVRUsartState *usart0;
+    //AVRUsartState *usart0;
     //AVRTimer16State *timer1;
     AVRMaskState *prr[2];
 	
@@ -208,19 +208,19 @@ static void sample_init(MachineState *machine)
 
 	//Changing to Atmega1284p. Highest register is 0xFF!
     create_unimplemented_device("usart 1", OFFSET_DATA + 0x00c8, 0x0007);
-    create_unimplemented_device("usart 0", OFFSET_DATA + 0x00c0, 0x0007);
+    //create_unimplemented_device("usart 0", OFFSET_DATA + 0x00c0, 0x0007);
     create_unimplemented_device("twi", OFFSET_DATA + 0x00b8, 0x0006);					// 2-wire-interface
 	
     create_unimplemented_device("timer-counter-async-8bit 2",
             OFFSET_DATA + 0x00b0, 0x0007);
 			
-    create_unimplemented_device("timer-counter-16bit 3",
-            OFFSET_DATA + 0x0090, 0x000e);
-    create_unimplemented_device("timer-counter-16bit 1",
-            OFFSET_DATA + 0x0080, 0x000e);
+    //create_unimplemented_device("timer-counter-16bit 3",
+    //        OFFSET_DATA + 0x0090, 0x000e);
+    //create_unimplemented_device("timer-counter-16bit 1",
+    //        OFFSET_DATA + 0x0080, 0x000e);
 			
-    create_unimplemented_device("ac / adc",
-            OFFSET_DATA + 0x0078, 0x0008);
+    //create_unimplemented_device("ac / adc",
+    //        OFFSET_DATA + 0x0078, 0x0008);
 			
     create_unimplemented_device("int-controller",
             OFFSET_DATA + 0x0068, 0x000c);
@@ -234,8 +234,8 @@ static void sample_init(MachineState *machine)
     create_unimplemented_device("ext-mem-iface",		//GPIO
             OFFSET_DATA + 0x004a, 0x0002);
 			
-    create_unimplemented_device("timer-counter-pwm-8bit 0",
-            OFFSET_DATA + 0x0043, 0x0006);
+    //create_unimplemented_device("timer-counter-pwm-8bit 0",
+    //        OFFSET_DATA + 0x0043, 0x0006);
 			
     create_unimplemented_device("ext-mem-iface",		//GPIO
             OFFSET_DATA + 0x003e, 0x0005);
@@ -243,10 +243,10 @@ static void sample_init(MachineState *machine)
     create_unimplemented_device("int-controller",
             OFFSET_DATA + 0x0035, 0x0009);
 			
-    create_unimplemented_device("gpio D", OFFSET_DATA + 0x0029, 0x0003);
-    create_unimplemented_device("gpio C", OFFSET_DATA + 0x0026, 0x0003);
-    create_unimplemented_device("gpio B", OFFSET_DATA + 0x0023, 0x0003);
-    create_unimplemented_device("gpio A", OFFSET_DATA + 0x0020, 0x0003);
+    //create_unimplemented_device("gpio D", OFFSET_DATA + 0x0029, 0x0003);
+    //create_unimplemented_device("gpio C", OFFSET_DATA + 0x0026, 0x0003);
+    //create_unimplemented_device("gpio B", OFFSET_DATA + 0x0023, 0x0003);
+    //create_unimplemented_device("gpio A", OFFSET_DATA + 0x0020, 0x0003);
 
     memory_region_allocate_system_memory(
         sms->ram, NULL, "avr.ram", SIZE_SRAM + SIZE_EXMEM);
