@@ -69,9 +69,12 @@ typedef struct
     /* UART END */
 
     /* ADC START */
-    uint8_t adcsr;
+    uint8_t adcsra;
+    uint8_t adcsrb;
     uint8_t admux;
     uint16_t adc;   // 10 bit => 2 byte
+
+    qemu_irq adc_conv_irq;
 
     double adc_voltages[NUM_PINS];
     /* ADC END */

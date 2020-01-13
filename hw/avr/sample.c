@@ -97,6 +97,8 @@
 #define USART_DRE_IRQ 20
 #define USART_TXC_IRQ 21
 
+#define ADC_CONV_IRQ  23
+
 /* ATMEGA1284P */
 #define TIMER1_CAPT_IRQ 11
 #define TIMER1_COMPA_IRQ 12
@@ -293,8 +295,9 @@ static void sample_init(MachineState *machine)
 
     busdev = SYS_BUS_DEVICE(sms->adc);
     sysbus_mmio_map(busdev, 0, OFFSET_DATA + 0x78);
+    sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(cpudev, ADC_CONV_IRQ));
     object_property_set_bool(OBJECT(sms->adc), true, "realized",
-        &error_fatal);
+        &error_fatal); 
     sms->porta->name = 'A';
     sms->porta->finalize(sms->porta);
     printf("Port A initiated\n");
