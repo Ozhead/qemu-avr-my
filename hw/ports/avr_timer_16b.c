@@ -850,7 +850,7 @@ static void avr_timer_16b_init(Object *obj)
     sysbus_init_irq(SYS_BUS_DEVICE(obj), &s->ovf_irq);
 
 
-    memory_region_init_io(&s->mmio, obj, &avr_timer_16b_ops, s, TYPE_AVR_TIMER_16b, 0xE);
+    memory_region_init_io(&s->mmio, obj, &avr_timer_16b_ops, s, TYPE_AVR_TIMER_16b, 0xE);   //TODO: This is overlapping! But QEMU seems to handle it correct!
 
     memory_region_init_io(&s->mmio_imsk, obj, &avr_timer_16b_imsk_ops,
                           s, TYPE_AVR_TIMER_16b, 0x1);
