@@ -191,7 +191,7 @@ static void avr_timer_8b_set_alarm(AVRPeripheralState *t16)
     uint64_t alarm_ns = t16->reset_time_ns + ((CNT(t16) + alarm_offset) * t16->period_ns);
     timer_mod(t16->timer, alarm_ns);
 
-    //printf("next alarm %" PRIu64 " ns from now\n", alarm_offset * t16->period_ns);
+    //printf("8b next alarm %" PRIu64 " ns from now\n", alarm_offset * t16->period_ns);
 
 end:
     return;

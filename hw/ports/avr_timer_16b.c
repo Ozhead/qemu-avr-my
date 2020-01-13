@@ -411,7 +411,7 @@ static void avr_timer_16b_set_alarm(AVRPeripheralState *t16)
         }
         break;
     default:
-        ERROR("pwm modes are unsupported");
+        printf("pwm modes are unsupported\n");
         goto end;
     }
     if (OCRB(t16) < alarm_offset && OCRB(t16) > CNT(t16) &&
@@ -431,8 +431,8 @@ static void avr_timer_16b_set_alarm(AVRPeripheralState *t16)
         t16->reset_time_ns + ((CNT(t16) + alarm_offset) * t16->period_ns);
     timer_mod(t16->timer, alarm_ns);
 
-    DB_PRINT("next alarm %" PRIu64 " ns from now",
-        alarm_offset * t16->period_ns);
+    //printf("16b next alarm %" PRIu64 " ns from now\n",
+    //    alarm_offset * t16->period_ns);
 
 end:
     return;
