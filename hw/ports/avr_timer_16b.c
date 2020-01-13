@@ -162,11 +162,21 @@ static uint32_t avr_timer_16b_serialize(void * opaque, uint32_t pinno, uint8_t *
         case T16_MODE_PHASE_PWM_ICRA:
         case T16_MODE_PHASE_FREQUENCY_PWM_ICR:
             top = ICR(t16); //TODO
+            if(top < 3)
+            {
+                printf("Warning: Minimum value for TOP is 3. Given top value is %d. Setting TOP = 3\n", top);
+                top = 3;
+            }
             break;
         case T16_MODE_FAST_PWM_OCRA:
         case T16_MODE_PHASE_PWM_OCRA:
         case T16_MODE_PHASE_FREQUENCY_PWM_OCRA:
             top = OCRA(t16);    //TODO
+            if(top < 3)
+            {
+                printf("Warning: Minimum value for TOP is 3. Given top value is %d. Setting TOP = 3\n", top);
+                top = 3;
+            }
             break;
         default:
             top = 0xFFFF;
