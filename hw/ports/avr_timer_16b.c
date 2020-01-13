@@ -410,6 +410,23 @@ static void avr_timer_16b_set_alarm(AVRPeripheralState *t16)
             next_interrupt = INTERRUPT_COMPA;
         }
         break;
+    case T16_MODE_FAST_PWM_8:
+    case T16_MODE_FAST_PWM_9:
+    case T16_MODE_FAST_PWM_10:
+    case T16_MODE_FAST_PWM_ICRA:
+    case T16_MODE_FAST_PWM_OCRA:
+        // execute all interrupts!
+        if (ICR(t16) < alarm_offset && ICR(t16) > CNT(t16)) {
+            alarm_offset = ICR(t16);
+            next_interrupt = INTERRUPT_CAPT;
+        }
+        if (OCRA(t16) < alarm_offset && OCRA(t16) > CNT(t16) &&
+            (t16->imsk & T16_INT_OCA)) {
+            alarm_offset = OCRA(t16);
+            next_interrupt = INTERRUPT_COMPA;
+        }
+        // TODO: Maybe set the Pins? or is it unnecessary?
+        break;
     default:
         printf("pwm modes are unsupported\n");
         goto end;

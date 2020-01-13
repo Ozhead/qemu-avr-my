@@ -169,8 +169,12 @@ static void avr_timer_8b_set_alarm(AVRPeripheralState *t16)
         break;
         case MODE_FAST_PWM:
         {
-            // nothing to do...
-            ;
+            // COMPA interrupt can occur
+            if (OCRA(t16) < alarm_offset && OCRA(t16) > CNT(t16) &&
+                (t16->imsk & T16_INT_OCA)) {
+                alarm_offset = OCRA(t16);
+                next_interrupt = INTERRUPT_COMPA;
+            }
         }
         break;
         default:
