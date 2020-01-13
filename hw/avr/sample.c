@@ -79,6 +79,10 @@
 #define TIMER1_IMSK_BASE 0x6F
 #define TIMER1_IFR_BASE 0x36
 
+#define TIMER3_BASE 0x90
+#define TIMER3_IMSK_BASE 0x71
+#define TIMER3_IFR_BASE 0x38
+
 #define TIMER0_BASE 0x44
 #define TIMER0_IMSK_BASE 0x6E
 #define TIMER0_IFR_BASE 0x35
@@ -105,6 +109,11 @@
 #define TIMER1_COMPB_IRQ 13
 //#define TIMER1_COMPC_IRQ 18
 #define TIMER1_OVF_IRQ 14
+
+#define TIMER3_CAPT_IRQ 30
+#define TIMER3_COMPA_IRQ 31
+#define TIMER3_COMPB_IRQ 32
+#define TIMER3_OVF_IRQ 33
 
 /* ATMEGA1284P */
 #define TIMER0_COMPA_IRQ 15
@@ -146,6 +155,7 @@ typedef struct {
     /* PORT B */
     AVRPortState * portb;
     AVRPeripheralState * timer0;
+    AVRPeripheralState * timer3;
 
 
     /* PORT D */
@@ -328,6 +338,24 @@ static void sample_init(MachineState *machine)
     object_property_set_bool(OBJECT(sms->timer0), true, "realized",
         &error_fatal);
 
+    /* timer 3 */
+    sms->timer3 = AVR_TIMER_16b(object_new(TYPE_AVR_TIMER_16b));
+    AVRPeripheralClass *pc3 = AVR_PERIPHERAL_GET_CLASS(sms->timer3);
+    add_peripheral_to_port(sms->portb, pc3, sms->timer3);
+    map_peripheral_to_pin(sms->portb, pc3, sms->timer3, 6);
+    map_peripheral_to_pin(sms->portb, pc3, sms->timer3, 7);
+
+    busdev = SYS_BUS_DEVICE(sms->timer3);
+    sysbus_mmio_map(busdev, 0, OFFSET_DATA + TIMER3_BASE);
+    sysbus_mmio_map(busdev, 1, OFFSET_DATA + TIMER3_IMSK_BASE);
+    sysbus_mmio_map(busdev, 2, OFFSET_DATA + TIMER3_IFR_BASE);
+    sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(cpudev, TIMER3_CAPT_IRQ));
+    sysbus_connect_irq(busdev, 1, qdev_get_gpio_in(cpudev, TIMER3_COMPA_IRQ));
+    sysbus_connect_irq(busdev, 2, qdev_get_gpio_in(cpudev, TIMER3_COMPB_IRQ));
+    sysbus_connect_irq(busdev, 3, qdev_get_gpio_in(cpudev, TIMER3_COMPA_IRQ));  // Atmega1284p does not have a COMPC interrupt, so we just remap it to COMPA
+    sysbus_connect_irq(busdev, 4, qdev_get_gpio_in(cpudev, TIMER3_OVF_IRQ));
+    object_property_set_bool(OBJECT(sms->timer3), true, "realized",
+        &error_fatal);
     sms->portb->finalize(sms->portb);
     printf("Port B initiated\n");
 
@@ -363,10 +391,10 @@ static void sample_init(MachineState *machine)
 
     /* timer 1 */
     sms->timer1 = AVR_TIMER_16b(object_new(TYPE_AVR_TIMER_16b));
-    AVRPeripheralClass *pc3 = AVR_PERIPHERAL_GET_CLASS(sms->timer1);
-    add_peripheral_to_port(sms->portd, pc3, sms->timer1);
-    map_peripheral_to_pin(sms->portd, pc3, sms->timer1, 4);
-    map_peripheral_to_pin(sms->portd, pc3, sms->timer1, 5);
+    AVRPeripheralClass *pc4 = AVR_PERIPHERAL_GET_CLASS(sms->timer1);
+    add_peripheral_to_port(sms->portd, pc4, sms->timer1);
+    map_peripheral_to_pin(sms->portd, pc4, sms->timer1, 4);
+    map_peripheral_to_pin(sms->portd, pc4, sms->timer1, 5);
 
     busdev = SYS_BUS_DEVICE(sms->timer1);
     sysbus_mmio_map(busdev, 0, OFFSET_DATA + TIMER1_BASE);
