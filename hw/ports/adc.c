@@ -61,7 +61,7 @@ static void adc_convert(void * opaque)
     
     p->adc = final;     //only take lower 10 bits!
     p->adcsra |= ADIF;  // set ADIF flag to 1
-    printf("ADC = %i\n", (int)p->adc);
+    //printf("ADC = %i\n", (int)p->adc);
 
     p->adcsra &= ~ADSC; // set ADSC flag to 0 to signalize a finished conversion!
     if(p->adcsra & ADIE)
