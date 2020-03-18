@@ -73,9 +73,12 @@
 #define PRR0_BASE 0x64
 #define PRR1_BASE 0x65
 #define USART_BASE 0xc0
+
+//TODO This
 #define TIMER1_BASE 0x80
 #define TIMER1_IMSK_BASE 0x6f
 #define TIMER1_IFR_BASE 0x36
+
 #define TIMER0_BASE 0x44
 #define TIMER0_IMSK_BASE 0x6E
 #define TIMER0_IFR_BASE 0x35
@@ -84,15 +87,18 @@
 #define PORTB_BASE 0x23
 #define PORTC_BASE 0x26
 #define PORTD_BASE 0x29
+#define PORTE_BASE 0x2C
+#define PORTF_BASE 0x2F
+#define PORTG_BASE 0x32
 
 /* Interrupt numbers used by peripherals */
 /*#define USART_RXC_IRQ 24
 #define USART_DRE_IRQ 25
 #define USART_TXC_IRQ 26*/
 
-#define USART_RXC_IRQ 19
-#define USART_DRE_IRQ 20
-#define USART_TXC_IRQ 21
+#define USART_RXC_IRQ 24
+#define USART_DRE_IRQ 25
+#define USART_TXC_IRQ 26
 
 /* ATMEGA2560 */
 #define TIMER1_CAPT_IRQ 15
@@ -101,10 +107,10 @@
 #define TIMER1_COMPC_IRQ 18
 #define TIMER1_OVF_IRQ 19
 
-/* ATMEGA1284P */
-#define TIMER0_COMPA_IRQ 15
-#define TIMER0_COMPB_IRQ 16
-#define TIMER0_OVF_IRQ 17
+/* ATMEGA2560 */
+#define TIMER0_COMPA_IRQ 20
+#define TIMER0_COMPB_IRQ 21
+#define TIMER0_OVF_IRQ 22
 
 /*  Power reduction     */
 #define PRR1_BIT_PRTIM5     0x05    /*  Timer/Counter5  */
