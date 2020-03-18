@@ -474,7 +474,7 @@ static int gdb_continue_partial(GDBState *s, char *newstates, size_t steps)
 
     if (!runstate_needs_reset()) {
         if (vm_prepare_start()) {
-            printf("Restart?\n");
+            //printf("Restart?\n");
             return 0;
         }
 
@@ -485,7 +485,7 @@ static int gdb_continue_partial(GDBState *s, char *newstates, size_t steps)
                 break; /* nothing to do here */
             case 's':
                 cpu->steps_to_execute = steps;
-                //printf("Set steps to %lu\n", steps);
+                printf("Set steps to %lu\n", steps);
                 trace_gdbstub_op_stepping(cpu->cpu_index);
                 cpu_single_step(cpu, sstep_flags);
                 cpu_resume(cpu);
@@ -1176,14 +1176,15 @@ static size_t array_to_num(char * p, int len)
         if(c == 0)
             continue;
 
-        if(c == '0')
-            continue;
+        //if(c == '0')
+        //    continue;
 
         //printf("%c\n", c);
        // size_t x = (c - '0') * pow(10, count);;
        // printf(" = %lu\n", x);
 
         sum += (c - '0') * pow(10, count);
+
         count++;
     }
 
@@ -1274,7 +1275,7 @@ static int gdb_handle_vcont(GDBState *s, const char *p)
             }
 
             steps = array_to_num(num_steps, chars_step);
-            //printf("steps = %lu\n", steps);
+            printf("steps = %lu\n", steps);
         }
 
         if (*p == '\0' || *p == ';') {
@@ -2762,7 +2763,7 @@ static void gdb_vm_state_change(void *opaque, int running, RunState state)
         break;
     }
     gdb_set_stop_cpu(cpu);
-    snprintf(buf, sizeof(buf), "T%02xthread:%s;", ret, thread_id);
+    snprintf(buf, sizeof(buf), "T%02xthreadOOO:%s;", ret, thread_id);
 
 send_packet:
     put_packet(s, buf);
