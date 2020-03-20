@@ -109,46 +109,16 @@ static void avr_port_send_data(void *opaque)
         uint16_t pin_mask = 1 << i;
 
         // is it defined?
-        if(port->periphs_in_pin[i] != NULL)
+        if(port->periphs_in_pin[i] == NULL || !port->periphs_in_pin[i]->is_active(port->states_in_pin[i], i))
         {
-            printf("Checking pin %d\n", i);
-            if(!port->periphs_in_pin[i]->is_active(port->states_in_pin[i], i))      //not active => this is a GPIO pin!
-            {
-            // this pin is set to input pin => ignore it; may be users fault if he sets DDR wrong!
-                if((port->ddr & pin_mask) == 0)
-                {
-                    printf("PIN %d is set as input pin and thus ignored...\n", i);
-                    continue;
-                }
 
-                printf("Serializing DigIO\n");
-                uint8_t val = (i << 5) & 0b11100000;    // write Pin ID, set the rest to zero!
-                if((port->port & pin_mask))
-                    val |= 1;                           // set the last bit to 1 due to logic one
-
-                data[data_ptr] = val;
-                data_ptr++;
-                printf("Dataptr = %lu\n", data_ptr);
-            }
-            else
-            {
-                printf("Sending peripheral data stuff...\n");
-                //assert(false);
-                // serialize the data, put it into the array (happens inside the func) and increment data_ptr
-                data_ptr += port->periphs_in_pin[i]->serialize(port->states_in_pin[i], i, data + data_ptr);
-                printf("Dataptr = %lu\n", data_ptr);
-                //port->periphs_in_pin[i]->serialize(port->states_in_pin[i], i, data + data_ptr);
-            }
-        }
-        else    // there is no pin here! so this must be DigIO anyway!
-        {   // TODO: Move this to a function...
             if((port->ddr & pin_mask) == 0)
             {
-                //printf("PIN %d is set as input pin and thus ignored...\n", i);
+                printf("PIN %d is set as input pin and thus ignored...\n", i);
                 continue;
             }
 
-            printf("Serializing DigIO t2\n");
+            printf("Serializing DigIO\n");
             uint8_t val = (i << 5) & 0b11100000;    // write Pin ID, set the rest to zero!
             if((port->port & pin_mask))
                 val |= 1;                           // set the last bit to 1 due to logic one
@@ -156,6 +126,15 @@ static void avr_port_send_data(void *opaque)
             data[data_ptr] = val;
             data_ptr++;
             printf("Dataptr = %lu\n", data_ptr);
+        }
+        else
+        {
+            printf("Sending peripheral data stuff...\n");
+            //assert(false);
+            // serialize the data, put it into the array (happens inside the func) and increment data_ptr
+            data_ptr += port->periphs_in_pin[i]->serialize(port->states_in_pin[i], i, data + data_ptr);
+            printf("Dataptr = %lu\n", data_ptr);
+            //port->periphs_in_pin[i]->serialize(port->states_in_pin[i], i, data + data_ptr);
         }
         
     }
