@@ -316,6 +316,11 @@ static void mega2560_init(MachineState *machine)
     map_peripheral_to_pin(sms->portb, pc2, sms->timer0, 3);
     map_peripheral_to_pin(sms->portb, pc2, sms->timer0, 4);
 
+    sms->timer0->Output_A.PinNum = 3;
+    sms->timer0->Output_A.pPort = (AVRPortState_t*)sms->portb;
+    sms->timer0->Output_B.PinNum = 4;
+    sms->timer0->Output_B.pPort = (AVRPortState_t*)sms->portb;
+
     busdev = SYS_BUS_DEVICE(sms->timer0);
     sysbus_mmio_map(busdev, 0, OFFSET_DATA + TIMER0_BASE);
     sysbus_mmio_map(busdev, 1, OFFSET_DATA + TIMER0_IMSK_BASE);
@@ -355,15 +360,10 @@ static void mega2560_init(MachineState *machine)
         &error_fatal);
 
     // set USART RX & TX Pins
-    //sms->uart0->pinno_rx = 0;
-    //sms->uart0->pinno_tx = 1;
     sms->uart0->Pin_RX.pPort = (AVRPortState_t*)sms->portd;
     sms->uart0->Pin_RX.PinNum = 0;
     sms->uart0->Pin_TX.pPort = (AVRPortState_t*)sms->portd;
     sms->uart0->Pin_TX.PinNum = 1;
-
-    //sms->uart0->pPin_RX = gen_pin_id(sms->porta, 0);
-
     printf("Port D initiated\n---------------------------------\n");
 
     /* Timer 1 built-in periphal */

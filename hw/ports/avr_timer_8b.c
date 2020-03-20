@@ -361,27 +361,27 @@ static void avr_timer_8b_write_ifr(void *opaque, hwaddr addr, uint64_t value,
 
 static uint32_t avr_timer_8b_serialize(void * opaque, PinID pin, uint8_t * pData)
 {
-    AVRPeripheralState *t16 = opaque;
+    AVRPeripheralState *t8 = opaque;
     uint8_t hdr, mode;
     uint8_t top = 0xFF;
 
-    if(t16->crb & 8)
+    if(t8->crb & 8)
     {
-        top = t16->ocra;
+        top = t8->ocra;
         printf("Overwriting TOP to %d\n", top);
     }
 
     uint8_t pinno = pin.PinNum;
-    if(pinno == 3)
+    if(pinno == t8->Output_A.PinNum && pin.pPort == t8->Output_A.pPort)
     {
         hdr = 0b01100100;
-        mode = (t16->cra & 0b11000000) >> 6;
+        mode = (t8->cra & 0b11000000) >> 6;
         printf("Pin3 Mode set to %d\n", mode);
     }
-    else if(pinno == 4)
+    else if(pinno == t8->Output_B.PinNum && pin.pPort == t8->Output_B.pPort)
     {
         hdr = 0b10000100;
-        mode = (t16->cra & 0b00110000) >> 4;
+        mode = (t8->cra & 0b00110000) >> 4;
         printf("Pin4 Mode = %d\n", mode);
     }
     else
@@ -395,7 +395,7 @@ static uint32_t avr_timer_8b_serialize(void * opaque, PinID pin, uint8_t * pData
 
     if(mode == 0)
     {
-        printf("CRA = %d", t16->cra);
+        printf("CRA = %d", t8->cra);
         printf("MODE 0 LOL => disabled\n");
         //return 0;
     }
