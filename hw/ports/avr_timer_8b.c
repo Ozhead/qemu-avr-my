@@ -7,12 +7,14 @@
 
 #define WGM00   0
 #define WGM01   1
-#define WGM02   11
+#define WGM02   8
 
 #define MODE_NORMAL 0
 #define MODE_CTC 2
 #define MODE_FAST_PWM 3
+#define MODE_FAST_PWM2 7
 #define MODE_PHASE_PWM 1
+#define MODE_PHASE_PWM2 5
 
 
 /* Clock source values */
@@ -31,7 +33,7 @@
 
 
                     // fourth bit, set to bit 3 + bits 0 and 1 of cra! == WGM02:0
-#define MODE(t16)   ((t16->cra & 3))
+#define MODE(t16)   ((t16->cra & WGM00) | (t16->cra & WGM01) | ((t16->crb & WGM02) >> 1))
 #define CLKSRC(t16) (t16->crb & 7)
 #define CNT(t16)    (t16->cnt)
 #define OCRA(t16)   (t16->ocra)
@@ -68,6 +70,7 @@ static int avr_timer_8b_is_active(void *opaque, PinID pin)
     if(pPort->ddr & pin_mask)
         return 1;
 
+    printf("Warning: Are you trying to use PWM while DDR is set to input?");
     return 0;
 }
 
@@ -169,6 +172,7 @@ static void avr_timer_8b_set_alarm(AVRPeripheralState *t16)
             }
         break;
         case MODE_FAST_PWM:
+        case MODE_FAST_PWM2:        // TODO: PWM2 TOV
         {
             // COMPA interrupt can occur
             if (OCRA(t16) < alarm_offset && OCRA(t16) > CNT(t16) &&
@@ -195,8 +199,6 @@ static void avr_timer_8b_set_alarm(AVRPeripheralState *t16)
     t16->next_interrupt = next_interrupt;
     uint64_t alarm_ns = t16->reset_time_ns + ((CNT(t16) + alarm_offset) * t16->period_ns);
     timer_mod(t16->timer, alarm_ns);
-
-    //printf("8b next alarm %" PRIu64 " ns from now\n", alarm_offset * t16->period_ns);
 
 end:
     return;
@@ -244,8 +246,12 @@ static void avr_timer_8b_toggle_pwm(AVRPeripheralState * t16)
         t16->last_ocrb = t16->ocrb;
 
         // TODO: Output_B?
-        AVRPortState* pPort = (AVRPortState*)t16->Output_A.pPort;
-        pPort->send_data(pPort);
+        AVRPortState* pPortA = (AVRPortState*)t16->Output_A.pPort;
+        pPortA->send_data(pPortA);
+
+        AVRPortState* pPortB = (AVRPortState*)t16->Output_B.pPort;
+        if(pPortB != pPortA)
+            pPortB->send_data(pPortB);
     }
 }
 
@@ -366,23 +372,34 @@ static uint32_t avr_timer_8b_serialize(void * opaque, PinID pin, uint8_t * pData
     uint8_t hdr, mode;
     uint8_t top = 0xFF;
 
-    if(t8->crb & 8)
+    /*if(t8->crb & 8)
     {
         top = t8->ocra;
         printf("Overwriting TOP to %d\n", top);
-    }
+    }*/
 
     uint8_t pinno = pin.PinNum;
-    if(pinno == t8->Output_A.PinNum && pin.pPort == t8->Output_A.pPort)
+    uint8_t pwm_mode = MODE(t8);
+    if(pinno == t8->Output_A.PinNum && pin.pPort == t8->Output_A.pPort)         // OCnA
     {
-        hdr = 0b01100100;
+        hdr = 0b00000100;    //PWM
+        hdr |= (pinno << 5);
         mode = (t8->cra & 0b11000000) >> 6;
+
+        if(pwm_mode == MODE_FAST_PWM || pwm_mode == MODE_FAST_PWM2 || pwm_mode == MODE_PHASE_PWM || pwm_mode == MODE_PHASE_PWM2)
+            top = t8->ocra;
+
         printf("Pin3 Mode set to %d\n", mode);
     }
-    else if(pinno == t8->Output_B.PinNum && pin.pPort == t8->Output_B.pPort)
+    else if(pinno == t8->Output_B.PinNum && pin.pPort == t8->Output_B.pPort)    // OCnB
     {
-        hdr = 0b10000100;
+        hdr = 0b00000100;    //PWM
+        hdr |= (pinno << 5);
         mode = (t8->cra & 0b00110000) >> 4;
+
+        if(pwm_mode == MODE_FAST_PWM || pwm_mode == MODE_PHASE_PWM) // Output B works only for WGM2 = 0
+            top = t8->ocrb;
+
         printf("Pin4 Mode = %d\n", mode);
     }
     else
@@ -394,21 +411,50 @@ static uint32_t avr_timer_8b_serialize(void * opaque, PinID pin, uint8_t * pData
     pData[0] = hdr;
     double val = 0;
 
-    if(mode == 0)
+    if(pwm_mode == MODE_NORMAL)
     {
-        printf("CRA = %d", t8->cra);
-        printf("MODE 0 LOL => disabled\n");
-        //return 0;
+        printf("PWM Mode disabled\n");
     }
-    else if(mode == 1)
+    else if(pwm_mode == MODE_CTC)
     {
-        printf("Mode 1 for CMPA not enabled\n");
-        return 0;
+        printf("TODO: CTC Mode send\n");
     }
-    else if(mode == 3)
-        val = (double)(top + 1) / 256.0;
-    else if(mode == 2)
-        val = (double)(255 - top) / 256.0;
+    else if(pwm_mode == MODE_FAST_PWM || pwm_mode == MODE_PHASE_PWM)
+    {
+        printf("MODE: FAST_PWM\n");
+
+
+
+        // mode = submode
+        if(mode == 0)   // Disabled
+        {
+            //printf("CRA = %d", t8->cra);
+            printf("This PWM channel is disabled\n");
+            //return 0;
+        }
+        else if(mode == 1)  // 
+        {
+            printf("Mode 1 for CMPA not enabled\n");
+            return 0;
+        }
+        else if(mode == 3)
+            val = (double)(top + 1) / 256.0;
+        else if(mode == 2)
+            val = (double)(255 - top) / 256.0;
+    }
+    else if(pwm_mode == MODE_FAST_PWM2 || pwm_mode == MODE_PHASE_PWM2)
+    {
+        // for this mode (WGM2=1), only output A can send the output and only if mode is set to 1!
+        if(pinno == t8->Output_A.PinNum && pin.pPort == t8->Output_A.pPort && mode == 1)
+        {
+            // this mode gives a duty cycle of 0.5. However, the frequency is variable by setting OCRA!
+            // since frequency is not implemented, this is not useful to do now.
+            val = 0.5;
+        }
+
+        printf("Warning: PWM is disabled, since PWM2 = 1 but COMnA0 != 1 and COMnA1 != 0\n");
+    }
+    
 
     printf("Val = %5.2f with top = %d\n", val, top);
     memcpy(pData+1, &val, sizeof(double));
