@@ -20,11 +20,11 @@ static int avr_uart_is_active(void *opaque, PinID pin)
 {
     //printf("UART is active\n");
     AVRPeripheralState *usart = opaque;
-    if(pin.PinNum == usart->Pin_RX.PinNum && usart->csrb & USART_CSRB_RXEN)
+    if(pin.PinNum == usart->Pin_RX.PinNum && pin.pPort == usart->Pin_RX.pPort && usart->csrb & USART_CSRB_RXEN)
     {
         return 1;
     }
-    else if(pin.PinNum == usart->Pin_TX.PinNum && usart->csrb & USART_CSRB_TXEN)
+    else if(pin.PinNum == usart->Pin_TX.PinNum && pin.pPort == usart->Pin_TX.pPort && usart->csrb & USART_CSRB_TXEN)
     {
         return 1;
     }
@@ -40,7 +40,7 @@ static void avr_uart_receive(void *opaque, const uint8_t *buffer, int msgid, Pin
     //assert(!usart->data_valid);   // this may lead to the fact that it crashes when new data is received but not retrieved!
 
     printf("UART Receive\n");
-    if(pin.PinNum != usart->Pin_RX.PinNum)
+    if(pin.PinNum != usart->Pin_RX.PinNum || pin.pPort != usart->Pin_RX.pPort)
     {
         printf("Error: Trying to receive on a UART pin that is not set as RX\n");
         return;
@@ -273,7 +273,7 @@ static uint32_t avr_uart_serialize(void * opaque, PinID pin, uint8_t * pData)
 
     uint8_t pinno = pin.PinNum;
 
-    if(pinno != usart->Pin_TX.PinNum)
+    if(pinno != usart->Pin_TX.PinNum || usart->Pin_TX.pPort != pin.pPort)
     {
         printf("Error: Trying to send over a UART Pin that is not set as TX\n");
         return 0;
