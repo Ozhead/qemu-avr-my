@@ -43,8 +43,9 @@ static int avr_timer_8b_can_receive(void *opaque)
 }
 
 // if PWM is active or pin somehow other used...
-static int avr_timer_8b_is_active(void *opaque, uint32_t pinno)
+static int avr_timer_8b_is_active(void *opaque, PinID pin)
 {
+    uint8_t pinno = pin.PinNum;
     printf("Call Timer is active on Pin %d\n", pinno);
     AVRPeripheralState *t16 = opaque;
 
@@ -70,7 +71,7 @@ static int avr_timer_8b_is_active(void *opaque, uint32_t pinno)
     return 0;
 }
 
-static void avr_timer_8b_receive(void *opaque, const uint8_t *buffer, int msgid, int pinno)
+static void avr_timer_8b_receive(void *opaque, const uint8_t *buffer, int msgid, PinID pin)
 {
     assert(false);
 }
@@ -358,7 +359,7 @@ static void avr_timer_8b_write_ifr(void *opaque, hwaddr addr, uint64_t value,
     t16->ifr = (uint8_t)value;
 }
 
-static uint32_t avr_timer_8b_serialize(void * opaque, uint32_t pinno, uint8_t * pData)
+static uint32_t avr_timer_8b_serialize(void * opaque, PinID pin, uint8_t * pData)
 {
     AVRPeripheralState *t16 = opaque;
     uint8_t hdr, mode;
@@ -370,6 +371,7 @@ static uint32_t avr_timer_8b_serialize(void * opaque, uint32_t pinno, uint8_t * 
         printf("Overwriting TOP to %d\n", top);
     }
 
+    uint8_t pinno = pin.PinNum;
     if(pinno == 3)
     {
         hdr = 0b01100100;

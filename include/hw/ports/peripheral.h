@@ -5,6 +5,7 @@
 #include "chardev/char-fe.h"
 #include "hw/hw.h"
 
+
 #define ID_DIGIO 0
 #define ID_USART 1
 #define ID_PWM 2
@@ -22,12 +23,19 @@ extern const uint8_t peripheral_msg_lengths[];
 // for teh evil circular dependancy >:(
 typedef struct AVRPortState AVRPortState_t;
 
+// for internal code...
 #define INTERRUPT_OVERFLOW 0
 #define INTERRUPT_COMPA 1
 #define INTERRUPT_COMPB 2
 #define INTERRUPT_COMPC 3
 #define INTERRUPT_CAPT  4
 
+
+typedef struct 
+{
+    AVRPortState_t * pPort;
+    uint8_t PinNum;
+} PinID;
 
 typedef struct 
 {
@@ -57,8 +65,10 @@ typedef struct
     uint8_t brrh;
     uint8_t brrl;
 
-    int16_t pinno_rx;
-    int16_t pinno_tx;
+    //int16_t pinno_rx;
+    //int16_t pinno_tx;
+    PinID Pin_RX;
+    PinID Pin_TX;
 
     /* Receive Complete */
     qemu_irq rxc_irq;
@@ -94,6 +104,9 @@ typedef struct
     uint8_t ocra;       // OCR0A
     uint8_t ocrb;       // OCR0B
 
+    PinID Output_A;
+    PinID Output_B;
+
     /* 16 bit: */
     uint8_t crc;
     uint8_t cntl;
@@ -123,7 +136,8 @@ typedef struct
     uint64_t reset_time_ns;
     
     uint8_t next_interrupt;
-    /* Timer 0 End */
+    PinID Output_C;
+    /* Timer End */
 
 } AVRPeripheralState;
 
@@ -134,11 +148,12 @@ typedef struct
     write
 */
 typedef int (*CanReceive)(void *opaque);
-typedef void (*Receive)(void *opaque, const uint8_t *buffer, int size, int pinno);
+typedef void (*Receive)(void *opaque, const uint8_t *buffer, int size, PinID pin);
 typedef uint64_t (*Read)(void *opaque, hwaddr addr, unsigned int size);
 typedef void (*Write)(void *opaque, hwaddr addr, uint64_t value, unsigned int size);
-typedef int (*IsActive)(void * opaque, uint32_t pinno);
-typedef uint32_t (*Serialize)(void * opaque, uint32_t pinno, uint8_t * pData);
+typedef int (*IsActive)(void * opaque, PinID pin);
+typedef uint32_t (*Serialize)(void * opaque, PinID pin, uint8_t * pData);
+
 
 #define AVR_PERIPHERAL_GET_CLASS(obj) \
     OBJECT_GET_CLASS(AVRPeripheralClass, obj, TYPE_AVR_PERIPHERAL)
@@ -163,4 +178,15 @@ typedef struct AVRPeripheralClass
     Write write_ifr;
 } AVRPeripheralClass;
 
+
+/*static inline PinID * gen_pin_id(struct AVRPortState * pClass, uint8_t pinno)
+{
+    PinID * pPinID = (PinID*) malloc(sizeof(PinID));
+    pPinID->pPort = pClass;
+    pPinID->PinNum = pinno;
+
+    return pPinID;
+}*/
+
 #endif
+

@@ -355,8 +355,14 @@ static void mega2560_init(MachineState *machine)
         &error_fatal);
 
     // set USART RX & TX Pins
-    sms->uart0->pinno_rx = 0;
-    sms->uart0->pinno_tx = 1;
+    //sms->uart0->pinno_rx = 0;
+    //sms->uart0->pinno_tx = 1;
+    sms->uart0->Pin_RX.pPort = (AVRPortState_t*)sms->portd;
+    sms->uart0->Pin_RX.PinNum = 0;
+    sms->uart0->Pin_TX.pPort = (AVRPortState_t*)sms->portd;
+    sms->uart0->Pin_TX.PinNum = 1;
+
+    //sms->uart0->pPin_RX = gen_pin_id(sms->porta, 0);
 
     printf("Port D initiated\n---------------------------------\n");
 

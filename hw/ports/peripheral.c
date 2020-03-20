@@ -13,13 +13,13 @@ static int avr_peripheral_can_receive(void *opaque)
 	return 1;
 }
 
-static int avr_peripheral_is_active(void *opaque, uint32_t pinno)
+static int avr_peripheral_is_active(void *opaque, PinID pin)
 {
     assert(false);
     return 1;
 }
 
-static void avr_peripheral_receive(void *opaque, const uint8_t *buffer, int size, int pinno)
+static void avr_peripheral_receive(void *opaque, const uint8_t *buffer, int size, PinID pin)
 {
 	printf("Calling avr_peripheral_receive\n");
     assert(false);
@@ -71,7 +71,7 @@ static void avr_peripheral_init(Object *obj)
     avr_peripheral_reset(dev);
 }*/
 
-static uint32_t avr_peripheral_serialize(void * opaque, uint32_t pinno, uint8_t * pData)
+static uint32_t avr_peripheral_serialize(void * opaque, PinID pin, uint8_t * pData)
 {
     assert(false);
     return 0;

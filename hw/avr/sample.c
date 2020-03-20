@@ -384,8 +384,8 @@ static void sample_init(MachineState *machine)
         &error_fatal);
 
     // set USART RX & TX Pins
-    sms->uart0->pinno_rx = 0;
-    sms->uart0->pinno_tx = 1;
+    //sms->uart0->pinno_rx = 0;
+    //sms->uart0->pinno_tx = 1;
 
     /* timer 1 */
     sms->timer1 = AVR_TIMER_16b(object_new(TYPE_AVR_TIMER_16b));

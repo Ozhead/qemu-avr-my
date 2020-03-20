@@ -82,9 +82,11 @@ static int avr_adc_can_receive(void *opaque)
     return 0;
 }
 
-static int avr_adc_is_active(void *opaque, uint32_t pinno)
+static int avr_adc_is_active(void *opaque, PinID pin)
 {
     AVRPeripheralState *p = opaque;
+
+    uint8_t pinno = pin.PinNum;
 
     if(p->adcsra & ADCEN)
     {
@@ -99,7 +101,7 @@ static int avr_adc_is_active(void *opaque, uint32_t pinno)
     return 0;
 }
 
-static void avr_adc_receive(void *opaque, const uint8_t *buffer, int msgid, int pinno)
+static void avr_adc_receive(void *opaque, const uint8_t *buffer, int msgid, PinID pin)
 {
     AVRPeripheralState *p = opaque;
 	//printf("Calling avr_adc_receive %d\n", msgid);
@@ -109,6 +111,7 @@ static void avr_adc_receive(void *opaque, const uint8_t *buffer, int msgid, int 
     memcpy(&val, buffer, sizeof(double));
 
     printf("Recv V = %5.2fV\n", val);
+    uint8_t pinno = pin.PinNum;
     p->adc_voltages[pinno] = val;
 
     /*if(avr_adc_is_active(opaque, pinno))
@@ -212,7 +215,7 @@ static void avr_adc_pr(void *opaque, int irq, int level)
 //}
 
 /* ADC is pure input so it can't send anything */
-static uint32_t avr_adc_serialize(void * opaque, uint32_t pinno, uint8_t * pData)
+static uint32_t avr_adc_serialize(void * opaque, PinID pin, uint8_t * pData)
 {
     return 0;
 }

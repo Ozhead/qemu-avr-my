@@ -16,15 +16,15 @@ static int avr_uart_can_receive(void *opaque)
     return 1;
 }
 
-static int avr_uart_is_active(void *opaque, uint32_t pinno)
+static int avr_uart_is_active(void *opaque, PinID pin)
 {
     //printf("UART is active\n");
     AVRPeripheralState *usart = opaque;
-    if(pinno == usart->pinno_rx && usart->csrb & USART_CSRB_RXEN)
+    if(pin.PinNum == usart->Pin_RX.PinNum && usart->csrb & USART_CSRB_RXEN)
     {
         return 1;
     }
-    else if(pinno == usart->pinno_tx && usart->csrb & USART_CSRB_TXEN)
+    else if(pin.PinNum == usart->Pin_TX.PinNum && usart->csrb & USART_CSRB_TXEN)
     {
         return 1;
     }
@@ -33,14 +33,14 @@ static int avr_uart_is_active(void *opaque, uint32_t pinno)
     return 0;
 }
 
-static void avr_uart_receive(void *opaque, const uint8_t *buffer, int msgid, int pinno)
+static void avr_uart_receive(void *opaque, const uint8_t *buffer, int msgid, PinID pin)
 {
     AVRPeripheralState *usart = opaque;
     //assert(size == 1);
     //assert(!usart->data_valid);   // this may lead to the fact that it crashes when new data is received but not retrieved!
 
     printf("UART Receive\n");
-    if(pinno != usart->pinno_rx)
+    if(pin.PinNum != usart->Pin_RX.PinNum)
     {
         printf("Error: Trying to receive on a UART pin that is not set as RX\n");
         return;
@@ -266,12 +266,14 @@ static void avr_uart_write(void *opaque, hwaddr addr, uint64_t value, unsigned i
     }
 }
 
-static uint32_t avr_uart_serialize(void * opaque, uint32_t pinno, uint8_t * pData)
+static uint32_t avr_uart_serialize(void * opaque, PinID pin, uint8_t * pData)
 {
     //uint8_t hdr, data;
     AVRPeripheralState *usart = opaque;
 
-    if(pinno != usart->pinno_tx)
+    uint8_t pinno = pin.PinNum;
+
+    if(pinno != usart->Pin_TX.PinNum)
     {
         printf("Error: Trying to send over a UART Pin that is not set as TX\n");
         return 0;
@@ -340,8 +342,6 @@ static void avr_uart_init(Object *obj)
     qdev_init_gpio_in(DEVICE(s), avr_uart_pr, 1);
     s->enabled = true;
 
-    s->pinno_tx = -1;
-    s->pinno_rx = -1;
 
     printf("AVR UART object init\n");
 }

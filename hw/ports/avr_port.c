@@ -45,7 +45,10 @@ static void avr_port_receive(void *opaque, const uint8_t *buffer, int size)
         //if(port->periphs_in_pin[pin_id]->is_active(port->states_in_pin[pin_id], pin_id))
         if(msg_id)  //not zero equals not digio
         {
-            port->periphs_in_pin[pin_id]->receive(port->states_in_pin[pin_id], buffer + ptr, peripheral_msg_lengths[msg_id], pin_id);
+            PinID pinid;
+            pinid.PinNum = pin_id;
+            pinid.pPort = (AVRPortState_t*)port;
+            port->periphs_in_pin[pin_id]->receive(port->states_in_pin[pin_id], buffer + ptr, peripheral_msg_lengths[msg_id], pinid);
         }
         else
         {
@@ -105,7 +108,10 @@ static void avr_port_send_data(void *opaque)
         uint16_t pin_mask = 1 << i;
 
         // is it defined?
-        if(port->periphs_in_pin[i] == NULL || !port->periphs_in_pin[i]->is_active(port->states_in_pin[i], i))
+        PinID pinid;
+        pinid.PinNum = i;
+        pinid.pPort = (AVRPortState_t*)port;
+        if(port->periphs_in_pin[i] == NULL || !port->periphs_in_pin[i]->is_active(port->states_in_pin[i], pinid))
         {
 
             if((port->ddr & pin_mask) == 0)
@@ -128,7 +134,10 @@ static void avr_port_send_data(void *opaque)
             printf("Sending peripheral data stuff...\n");
             //assert(false);
             // serialize the data, put it into the array (happens inside the func) and increment data_ptr
-            data_ptr += port->periphs_in_pin[i]->serialize(port->states_in_pin[i], i, data + data_ptr);
+            PinID id;
+            id.pPort = (AVRPortState_t*)port;
+            id.PinNum = i;
+            data_ptr += port->periphs_in_pin[i]->serialize(port->states_in_pin[i], id, data + data_ptr);
             printf("Dataptr = %lu\n", data_ptr);
             //port->periphs_in_pin[i]->serialize(port->states_in_pin[i], i, data + data_ptr);
         }

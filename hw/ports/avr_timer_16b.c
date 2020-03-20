@@ -97,8 +97,9 @@ static int avr_timer_16b_can_receive(void *opaque)
 }
 
 
-static int avr_timer_16b_is_active(void *opaque, uint32_t pinno)
+static int avr_timer_16b_is_active(void *opaque, PinID pin)
 {
+    uint8_t pinno = pin.PinNum;
     printf("Call Timer16 is active on Pin %d\n", pinno);
     AVRPeripheralState *t16 = opaque;
 
@@ -127,12 +128,12 @@ static int avr_timer_16b_is_active(void *opaque, uint32_t pinno)
     return 0;
 }
 
-static void avr_timer_16b_receive(void *opaque, const uint8_t *buffer, int msgid, int pinno)
+static void avr_timer_16b_receive(void *opaque, const uint8_t *buffer, int msgid, PinID pin)
 {
     assert(false);
 }
 
-static uint32_t avr_timer_16b_serialize(void * opaque, uint32_t pinno, uint8_t * pData)
+static uint32_t avr_timer_16b_serialize(void * opaque, PinID pin, uint8_t * pData)
 {
     AVRPeripheralState *t16 = opaque;
     uint8_t mode = MODE(t16);
@@ -181,6 +182,8 @@ static uint32_t avr_timer_16b_serialize(void * opaque, uint32_t pinno, uint8_t *
         default:
             top = 0xFFFF;
     }
+
+    uint8_t pinno = pin.PinNum;
 
     if(pinno == 4)
     {
