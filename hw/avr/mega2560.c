@@ -298,7 +298,6 @@ static void mega2560_init(MachineState *machine)
     object_property_set_bool(OBJECT(sms->adc), true, "realized",
         &error_fatal);
     sms->porta->name = 'A';
-    sms->porta->finalize(sms->porta);
     printf("Port A initiated\n");
 
     /* PORT B */
@@ -327,7 +326,6 @@ static void mega2560_init(MachineState *machine)
     object_property_set_bool(OBJECT(sms->timer0), true, "realized",
         &error_fatal);
 
-    sms->portb->finalize(sms->portb);
     printf("Port B initiated\n");
 
     /* PORT D */
@@ -360,7 +358,6 @@ static void mega2560_init(MachineState *machine)
     sms->uart0->pinno_rx = 0;
     sms->uart0->pinno_tx = 1;
 
-    sms->portd->finalize(sms->portd);
     printf("Port D initiated\n---------------------------------\n");
 
     /* Timer 1 built-in periphal */

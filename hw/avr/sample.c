@@ -309,7 +309,6 @@ static void sample_init(MachineState *machine)
     object_property_set_bool(OBJECT(sms->adc), true, "realized",
         &error_fatal); 
     sms->porta->name = 'A';
-    sms->porta->finalize(sms->porta);
     printf("Port A initiated\n");
 
     /* PORT B */
@@ -356,7 +355,6 @@ static void sample_init(MachineState *machine)
     sysbus_connect_irq(busdev, 4, qdev_get_gpio_in(cpudev, TIMER3_OVF_IRQ));
     object_property_set_bool(OBJECT(sms->timer3), true, "realized",
         &error_fatal);
-    sms->portb->finalize(sms->portb);
     printf("Port B initiated\n");
 
     /* PORT D */
@@ -408,7 +406,6 @@ static void sample_init(MachineState *machine)
     object_property_set_bool(OBJECT(sms->timer1), true, "realized",
         &error_fatal);
 
-    sms->portd->finalize(sms->portd);
     printf("Port D initiated\n---------------------------------\n");
 
     /* Timer 1 built-in periphal OLD CODE*/

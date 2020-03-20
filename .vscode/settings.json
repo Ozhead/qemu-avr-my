@@ -67,7 +67,8 @@
     "files.associations": {
         "typeinfo": "c",
         "random": "c",
-        "avr_timer_16b.h": "c"
+        "avr_timer_16b.h": "c",
+        "unimp.h": "c"
     }
     
 }

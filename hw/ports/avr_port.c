@@ -6,10 +6,6 @@
 
 
 
-static void avr_port_finish_initialization(void * opaque)
-{
-    printf("Unused finalize\n");
-}
 
 //TODO: Correct return size!
 static int avr_port_can_receive(void *opaque)
@@ -222,7 +218,6 @@ static void avr_port_init(Object *obj)
     }
 
     s->send_data = avr_port_send_data;
-    s->finalize = avr_port_finish_initialization;
     s->peripheral_counter = 0;
     s->enabled = true;
 }
