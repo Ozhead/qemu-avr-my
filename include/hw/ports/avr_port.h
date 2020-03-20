@@ -71,7 +71,6 @@ static inline void add_peripheral_to_port(AVRPortState * port, AVRPeripheralClas
     port->periphs[port->peripheral_counter] = periph;
     port->states[port->peripheral_counter] = state;
     port->peripheral_counter++;
-    state->father_port[0] = (AVRPortState_t*)port;     //let the peripheral know who's boss it is
     printf("Added peripheral to port...\n");
 }
 

@@ -49,8 +49,6 @@ typedef struct
     MemoryRegion mmio_ifr;
 
     CharBackend chr;
-
-    AVRPortState_t * father_port[128];
     
     /* UART START */
     bool enabled;

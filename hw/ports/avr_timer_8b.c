@@ -63,7 +63,7 @@ static int avr_timer_8b_is_active(void *opaque, PinID pin)
     }
 
     // the pin must be set to output port!
-    AVRPortState * pPort = (AVRPortState*)t16->father_port[0];
+    AVRPortState* pPort = (AVRPortState*)t16->Output_A.pPort;   //TODO: PortB?
     uint8_t pin_mask = (1 << pinno);
     if(pPort->ddr & pin_mask)
         return 1;
@@ -243,7 +243,8 @@ static void avr_timer_8b_toggle_pwm(AVRPeripheralState * t16)
         t16->last_ocra = t16->ocra;
         t16->last_ocrb = t16->ocrb;
 
-        AVRPortState * pPort = (AVRPortState*)t16->father_port[0];
+        // TODO: Output_B?
+        AVRPortState* pPort = (AVRPortState*)t16->Output_A.pPort;
         pPort->send_data(pPort);
     }
 }
