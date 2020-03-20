@@ -42,7 +42,7 @@ typedef struct
 
     CharBackend chr;
 
-    AVRPortState_t * father_port;
+    AVRPortState_t * father_port[128];
     
     /* UART START */
     bool enabled;

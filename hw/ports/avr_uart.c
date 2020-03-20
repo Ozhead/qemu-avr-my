@@ -193,7 +193,7 @@ static void avr_uart_write(void *opaque, hwaddr addr, uint64_t value, unsigned i
         //data = value;
         //qemu_chr_fe_write_all(&usart->chr, &data, 1);
         usart->data = value;
-        AVRPortState * pPort = (AVRPortState*)usart->father_port;
+        AVRPortState * pPort = (AVRPortState*)usart->father_port[0];
         pPort->send_data(pPort);
         break;
     case USART_CSRA:

@@ -119,7 +119,7 @@ static int avr_timer_16b_is_active(void *opaque, uint32_t pinno)
     }
 
         // the pin must be set to output port!
-    AVRPortState * pPort = (AVRPortState*)t16->father_port;
+    AVRPortState * pPort = (AVRPortState*)t16->father_port[0];
     uint8_t pin_mask = (1 << pinno);
     if(pPort->ddr & pin_mask)
         return 1;
@@ -293,7 +293,7 @@ static void avr_timer_16b_toggle_pwm(AVRPeripheralState * t16)
             t16->last_ocra = OCRA(t16);
             t16->last_ocrb = OCRB(t16);
 
-            AVRPortState * pPort = (AVRPortState*)t16->father_port;
+            AVRPortState * pPort = (AVRPortState*)t16->father_port[0];
             pPort->send_data(pPort);
         }
 
@@ -658,7 +658,7 @@ static void avr_timer_16b_write(void *opaque, hwaddr offset,
     uint8_t val8 = (uint8_t)val64;
     t16->prev_clk_src = CLKSRC(t16);
 
-    AVRPortState * pPort = (AVRPortState*)t16->father_port;
+    AVRPortState * pPort = (AVRPortState*)t16->father_port[0];
     printf("Timer16 write of Port %c\n", pPort->name);
     DB_PRINT("write %d to offset %d", val8, (uint8_t)offset);
 

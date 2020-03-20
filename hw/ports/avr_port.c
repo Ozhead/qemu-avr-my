@@ -22,7 +22,7 @@ static int avr_port_can_receive(void *opaque)
     // TODO later! check all "unmapped" pins if they can receive something!
 	if(port->ddr == 0xFF)
 		return 0;
-	return 4096;
+	return 4096;        // since 4096 bytes can be received at max
 }
 
 static void avr_port_receive(void *opaque, const uint8_t *buffer, int size)

@@ -19,6 +19,15 @@
  {
     AVRPeripheralClass parent_class;
 
+    uint8_t adcsra;
+    uint8_t adcsrb;
+    uint8_t admux;
+    uint16_t adc;   // 10 bit => 2 byte
+
+    qemu_irq adc_conv_irq;
+
+    double adc_voltages[NUM_PINS];
+
     CanReceive parent_can_receive;
     Receive parent_receive;
     Read parent_read;
