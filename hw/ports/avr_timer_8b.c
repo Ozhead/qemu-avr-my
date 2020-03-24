@@ -39,6 +39,9 @@
 #define OCRA(t16)   (t16->ocra)
 #define OCRB(t16)   (t16->ocrb)
 
+//#define dprintf(fmt, args...)    fprintf(stderr, fmt, ## args)
+#define dprintf(fmt, args...) 
+
 static int avr_timer_8b_can_receive(void *opaque)
 {
     return 0;
@@ -48,7 +51,7 @@ static int avr_timer_8b_can_receive(void *opaque)
 static int avr_timer_8b_is_active(void *opaque, PinID pin)
 {
     uint8_t pinno = pin.PinNum;
-    printf("Call Timer is active on Pin %d\n", pinno);
+    dprintf("Call Timer is active on Pin %d\n", pinno);
     AVRPeripheralState *t16 = opaque;
 
     if (CLKSRC(t16) == T16_CLKSRC_EXT_FALLING ||
@@ -133,7 +136,7 @@ static void avr_timer_8b_clksrc_update(AVRPeripheralState *t16)
     }
     t16->freq_hz = t16->cpu_freq_hz / divider;
     t16->period_ns = NANOSECONDS_PER_SECOND / t16->freq_hz;
-    printf("Timer frequency %" PRIu64 " hz, period %" PRIu64 " ns (%f s)\n",
+    dprintf("Timer frequency %" PRIu64 " hz, period %" PRIu64 " ns (%f s)\n",
              t16->freq_hz, t16->period_ns, 1 / (double)t16->freq_hz);
 end:
     return;
@@ -146,7 +149,7 @@ static void avr_timer_8b_set_alarm(AVRPeripheralState *t16)
         CLKSRC(t16) == T16_CLKSRC_EXT_RISING ||
         CLKSRC(t16) == T16_CLKSRC_STOPPED) {
         /* Timer is disabled or set to external clock source (unsupported) */
-        printf("No clock set...\n");
+        dprintf("No clock set...\n");
         goto end;
     }
 
@@ -183,7 +186,7 @@ static void avr_timer_8b_set_alarm(AVRPeripheralState *t16)
         }
         break;
         default:
-            printf("pwm modes are unsupported\n");
+            dprintf("pwm modes are unsupported\n");
             goto end;
     }
 
@@ -237,10 +240,12 @@ static void avr_timer_8b_toggle_pwm(AVRPeripheralState * t16)
 {
     uint8_t curr_pwm = t16->cra & 0b11110011;
 
+    dprintf("Call toggle_pwm\n");
+
     // PWM mode changed OR one of the compare registers changed OR the clock has been stopped!
     if(curr_pwm != t16->last_pwm || t16->ocra != t16->last_ocra || t16->ocrb != t16->last_ocrb || CLKSRC(t16) == T16_CLKSRC_STOPPED)
     {
-        printf("Change in PWM detected!\n");
+        dprintf("Change in PWM detected!\n");
         t16->last_pwm = curr_pwm;
         t16->last_ocra = t16->ocra;
         t16->last_ocrb = t16->ocrb;
@@ -271,6 +276,7 @@ static void avr_timer_8b_write(void *opaque, hwaddr addr, uint64_t value,
     switch (addr) 
     {
     case 0:     // CRA
+        dprintf("Wrote something to OCRA\n");
         last_cra = t16->cra;
         t16->cra = val8;
         if (t16->cra & 0b11110000) 
@@ -389,7 +395,7 @@ static uint32_t avr_timer_8b_serialize(void * opaque, PinID pin, uint8_t * pData
         if(pwm_mode == MODE_FAST_PWM || pwm_mode == MODE_FAST_PWM2 || pwm_mode == MODE_PHASE_PWM || pwm_mode == MODE_PHASE_PWM2)
             top = t8->ocra;
 
-        printf("Pin3 Mode set to %d\n", mode);
+        dprintf("Pin3 Mode set to %d\n", mode);
     }
     else if(pinno == t8->Output_B.PinNum && pin.pPort == t8->Output_B.pPort)    // OCnB
     {
@@ -400,7 +406,7 @@ static uint32_t avr_timer_8b_serialize(void * opaque, PinID pin, uint8_t * pData
         if(pwm_mode == MODE_FAST_PWM || pwm_mode == MODE_PHASE_PWM) // Output B works only for WGM2 = 0
             top = t8->ocrb;
 
-        printf("Pin4 Mode = %d\n", mode);
+        dprintf("Pin4 Mode = %d\n", mode);
     }
     else
     {
@@ -413,7 +419,7 @@ static uint32_t avr_timer_8b_serialize(void * opaque, PinID pin, uint8_t * pData
 
     if(pwm_mode == MODE_NORMAL)
     {
-        printf("PWM Mode disabled\n");
+        dprintf("PWM Mode disabled\n");
     }
     else if(pwm_mode == MODE_CTC)
     {
@@ -421,7 +427,7 @@ static uint32_t avr_timer_8b_serialize(void * opaque, PinID pin, uint8_t * pData
     }
     else if(pwm_mode == MODE_FAST_PWM || pwm_mode == MODE_PHASE_PWM)
     {
-        printf("MODE: FAST_PWM\n");
+        dprintf("MODE: FAST_PWM\n");
 
 
 
@@ -429,7 +435,7 @@ static uint32_t avr_timer_8b_serialize(void * opaque, PinID pin, uint8_t * pData
         if(mode == 0)   // Disabled
         {
             //printf("CRA = %d", t8->cra);
-            printf("This PWM channel is disabled\n");
+            dprintf("This PWM channel is disabled\n");
             //return 0;
         }
         else if(mode == 1)  // 
@@ -456,7 +462,7 @@ static uint32_t avr_timer_8b_serialize(void * opaque, PinID pin, uint8_t * pData
     }
     
 
-    printf("Val = %5.2f with top = %d\n", val, top);
+    dprintf("Val = %f with top = %d\n", val, top);
     memcpy(pData+1, &val, sizeof(double));
     return 9;
 }
@@ -519,19 +525,19 @@ static void avr_timer_8b_interrupt(void *opaque)
     // Check for ocra overflow in CTC mode 
     if (mode == MODE_CTC && t16->next_interrupt == INTERRUPT_COMPA) 
     {
-        printf("CTC OCRA overflow\n");
+        dprintf("CTC OCRA overflow\n");
         avr_timer_8b_clock_reset(t16);
     }
     // Check for output compare interrupts 
     if (t16->imsk & T16_INT_OCA && t16->next_interrupt == INTERRUPT_COMPA) 
     {
-        printf("Set Compa irq\n");
+        dprintf("Set Compa irq\n");
         t16->ifr |= T16_INT_OCA;
         qemu_set_irq(t16->compa_irq, 1);
     }
     if (t16->imsk & T16_INT_OCB && t16->next_interrupt == INTERRUPT_COMPB) 
     {
-        printf("Set compb irq\n");
+        dprintf("Set compb irq\n");
         t16->ifr |= T16_INT_OCB;
         qemu_set_irq(t16->compb_irq, 1);
     }
@@ -603,7 +609,7 @@ static void avr_timer_8b_class_init(ObjectClass *klass, void *data)
     pc->write_imsk = avr_timer_8b_write_imsk;
     pc->read_ifr = avr_timer_8b_read_ifr;
     pc->read_imsk = avr_timer_8b_read_imsk;
-    printf("Timer 8b initiated\n");
+    dprintf("Timer 8b initiated\n");
 }
 
 
@@ -651,7 +657,7 @@ static void avr_timer_8b_init(Object *obj)
 
     s->timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, avr_timer_8b_interrupt, s);
     s->enabled = true;
-    printf("AVR Timer8b object init\n");
+    dprintf("AVR Timer8b object init\n");
 }
 
 static const TypeInfo avr_timer_8b_info = {
