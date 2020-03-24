@@ -32,7 +32,7 @@ static int avr_uart_is_active(void *opaque, PinID pin)
         return 1;
     }
 
-    printf("UART is disabled\n");
+    //dprintf("UART is disabled\n");
     return 0;
 }
 
