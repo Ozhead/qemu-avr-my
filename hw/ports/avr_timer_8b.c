@@ -51,7 +51,9 @@ static int avr_timer_8b_can_receive(void *opaque)
 static int avr_timer_8b_is_active(void *opaque, PinID pin)
 {
     uint8_t pinno = pin.PinNum;
-    dprintf("Call Timer is active on Pin %d\n", pinno);
+    AVRPortState * port = (AVRPortState*)pin.pPort;
+    port->name = port->name;    // to disable errors due to unused port if dprintf is disabled...
+    dprintf("Call Timer is active on Port %c Pin %d\n", port->name, pinno);
     AVRPeripheralState *t16 = opaque;
 
     if (CLKSRC(t16) == T16_CLKSRC_EXT_FALLING ||
@@ -68,12 +70,25 @@ static int avr_timer_8b_is_active(void *opaque, PinID pin)
     }
 
     // the pin must be set to output port!
-    AVRPortState* pPort = (AVRPortState*)t16->Output_A.pPort;   //TODO: PortB?
-    uint8_t pin_mask = (1 << pinno);
-    if(pPort->ddr & pin_mask)
-        return 1;
+    if(pin.pPort == t16->Output_A.pPort && pin.PinNum == t16->Output_A.PinNum)
+    {
+        AVRPortState* pPort = (AVRPortState*)t16->Output_A.pPort;  
+        uint8_t pin_mask = (1 << pinno);
+        if(pPort->ddr & pin_mask)
+            return 1;
 
-    printf("Warning: Are you trying to use PWM while DDR is set to input?");
+        printf("Warning: Are you trying to use PWM while DDR is set to input?");
+    }
+    else if(pin.pPort == t16->Output_B.pPort && pin.PinNum == t16->Output_B.PinNum)
+    {
+        AVRPortState* pPort = (AVRPortState*)t16->Output_B.pPort;  
+        uint8_t pin_mask = (1 << pinno);
+        if(pPort->ddr & pin_mask)
+            return 1;
+
+        printf("Warning: Are you trying to use PWM while DDR is set to input?");
+    }
+
     return 0;
 }
 
