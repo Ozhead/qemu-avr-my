@@ -65,6 +65,9 @@
 static int phy_memory_mode;
 #endif
 
+//#define dprintf(fmt, args...)    fprintf(stderr, fmt, ## args)
+#define dprintf(fmt, args...) 
+
 static inline int target_memory_rw_debug(CPUState *cpu, target_ulong addr,
                                          uint8_t *buf, int len, bool is_write)
 {
@@ -485,7 +488,7 @@ static int gdb_continue_partial(GDBState *s, char *newstates, size_t steps)
                 break; /* nothing to do here */
             case 's':
                 cpu->steps_to_execute = steps;
-                printf("Set steps to %lu\n", steps);
+                dprintf("\n\n\nSet steps to %lu\n", steps);
                 trace_gdbstub_op_stepping(cpu->cpu_index);
                 cpu_single_step(cpu, sstep_flags);
                 cpu_resume(cpu);
@@ -1275,7 +1278,7 @@ static int gdb_handle_vcont(GDBState *s, const char *p)
             }
 
             steps = array_to_num(num_steps, chars_step);
-            printf("steps = %lu\n", steps);
+            //dprintf("steps = %lu\n", steps);
         }
 
         if (*p == '\0' || *p == ';') {
