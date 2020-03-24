@@ -5,7 +5,8 @@
 #include "hw/qdev-properties.h"
 
 
-
+//#define dprintf(fmt, args...)    fprintf(stderr, fmt, ## args)
+#define dprintf(fmt, args...) 
 
 //TODO: Correct return size!
 static int avr_port_can_receive(void *opaque)
@@ -38,7 +39,7 @@ static void avr_port_receive(void *opaque, const uint8_t *buffer, int size)
         const uint8_t pin_id = (header & 0b11100000) >> 5;
         const uint8_t msg_id = (header & 0b00011110) >> 1;
 
-        printf("Header ID = %i MsgID = %i Size = %i\n", pin_id, msg_id, size);
+        dprintf("Header ID = %i MsgID = %i Size = %i\n", pin_id, msg_id, size);
 
         ptr++;
 
@@ -52,19 +53,19 @@ static void avr_port_receive(void *opaque, const uint8_t *buffer, int size)
         }
         else
         {
-            printf("DIGIO %d\n", msg_id);
+            dprintf("DIGIO %d\n", msg_id);
             if(header & 1)      // set to 1
                 port->pin |= (1 << pin_id);
             else
                 port->pin &= ~(1 << pin_id);
 
-            printf("PIN = %d\n", port->pin);
+            dprintf("PIN = %d\n", port->pin);
         }
         
         ptr += peripheral_msg_lengths[msg_id]; //advance the current pointer
     }
 
-    printf("------------------------------\n");
+    dprintf("------------------------------\n");
 }
 
 static void avr_port_reset(DeviceState *dev)
@@ -78,7 +79,7 @@ static void avr_port_reset(DeviceState *dev)
 
 static uint64_t avr_port_read(void *opaque, hwaddr addr, unsigned int size)
 {
-	printf("Call port base read\n");
+	dprintf("Call port base read\n");
     AVRPortState *port = opaque;
 
     switch(addr)
@@ -101,8 +102,8 @@ static void avr_port_send_data(void *opaque)
     memset(data, 0, 4096);
     AVRPortState *port = opaque;
 
-    printf("===========START=SEND=================>\n");
-    printf("Try to send Data of Port %c\n", port->name);
+    dprintf("===========START=SEND=================>\n");
+    dprintf("Try to send Data of Port %c\n", port->name);
     for(uint32_t i = 0; i < NUM_PINS; i++)
     {
         uint16_t pin_mask = 1 << i;
@@ -116,29 +117,29 @@ static void avr_port_send_data(void *opaque)
 
             if((port->ddr & pin_mask) == 0)
             {
-                printf("PIN %d is set as input pin and thus ignored...\n", i);
+                //printf("PIN %d is set as input pin and thus ignored...\n", i);
                 continue;
             }
 
-            printf("Serializing DigIO\n");
+            dprintf("Serializing DigIO\n");
             uint8_t val = (i << 5) & 0b11100000;    // write Pin ID, set the rest to zero!
             if((port->port & pin_mask))
                 val |= 1;                           // set the last bit to 1 due to logic one
 
             data[data_ptr] = val;
             data_ptr++;
-            printf("Dataptr = %lu\n", data_ptr);
+            //printf("Dataptr = %lu\n", data_ptr);
         }
         else
         {
-            printf("Sending peripheral data stuff...\n");
+            dprintf("Sending peripheral data stuff...\n");
             //assert(false);
             // serialize the data, put it into the array (happens inside the func) and increment data_ptr
             PinID id;
             id.pPort = (AVRPortState_t*)port;
             id.PinNum = i;
             data_ptr += port->periphs_in_pin[i]->serialize(port->states_in_pin[i], id, data + data_ptr);
-            printf("Dataptr = %lu\n", data_ptr);
+            dprintf("Dataptr = %lu\n", data_ptr);
             //port->periphs_in_pin[i]->serialize(port->states_in_pin[i], i, data + data_ptr);
         }
         
@@ -147,28 +148,28 @@ static void avr_port_send_data(void *opaque)
     if(data_ptr > 0)
     {
         qemu_chr_fe_write_all(&port->chr, data, data_ptr);  //send
-        printf("Sent %lu bytes\n", data_ptr);
+        dprintf("Sent %lu bytes\n", data_ptr);
     }
-    printf("<============STOP=SEND================\n");
+    dprintf("<============STOP=SEND================\n");
 }
 
 static void avr_port_write(void *opaque, hwaddr addr, uint64_t value,
                                 unsigned int size)
 {
     AVRPortState *port = opaque;
-	printf("Port base write %c\n", port->name);
+	dprintf("Port base write %c\n", port->name);
 
     switch(addr)
 	{
 		case PIN:
 		{
-			printf("Writing to PIN... But nothing happened! TODO: Toggle\n");
+			dprintf("Writing to PIN... But nothing happened! TODO: Toggle\n");
 			//TODO: Actually this will toggle PORT independant of DDR
 		}
 		break;
 		case PORT:
 		{
-            printf("Update PORT\n");
+            dprintf("Update PORT\n");
 			/* only write those that are set by DDR to 1! */
 			uint8_t update_val = value & 0xFF;
 			//gpio->port = (gpio->port & ~gpio->ddr) | (update_val & gpio->ddr);
@@ -181,7 +182,7 @@ static void avr_port_write(void *opaque, hwaddr addr, uint64_t value,
 		break;
 		case DDR:
 		{
-            //printf("Update DDR\n");
+            dprintf("Update DDR\n");
 			port->ddr = value;
             avr_port_send_data(port);
 		}
