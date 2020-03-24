@@ -140,18 +140,22 @@ typedef struct {
     AVRTimer16State *timer1;
     AVRMaskState *prr[2];
 	
-    /* PORT A */
-    AVRPortState * porta;
-    AVRPeripheralState *adc;
-
     /* PORT B */
     AVRPortState * portb;
     AVRPeripheralState * timer0;
 
-
-    /* PORT D */
-    AVRPortState * portd;
+    /* PORT E */
+    AVRPortState * porte;
     AVRPeripheralState * uart0;
+
+    /* PORT F */
+    AVRPortState * portf;
+    AVRPeripheralState *adc;
+
+    /* PORT G */
+    AVRPortState * portg;
+    // + timer0
+
 } Mega2560MachineState;
 
 #define TYPE_MEGA2560_MACHINE MACHINE_TYPE_NAME("mega2560")
@@ -259,58 +263,109 @@ static void mega2560_init(MachineState *machine)
     sms->prr[1] = AVR_MASK(sysbus_create_simple(TYPE_AVR_MASK,
                     OFFSET_DATA + PRR1_BASE, NULL));
 
-    /* USART 0 built-in peripheral */
-    /*sms->usart0 = AVR_USART(object_new(TYPE_AVR_USART));
-    busdev = SYS_BUS_DEVICE(sms->usart0);
-    qdev_prop_set_chr(DEVICE(sms->usart0), "chardev", serial_hd(0));
-    object_property_set_bool(OBJECT(sms->usart0), true, "realized",
-            &error_fatal);
-    sysbus_mmio_map(busdev, 0, OFFSET_DATA + USART_BASE);*/
-	
-    /*
-     * These IRQ numbers don't match the datasheet because we're counting from
-     * zero and not including reset.
-     */
-    /*sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(cpudev, USART_RXC_IRQ));
-    sysbus_connect_irq(busdev, 1, qdev_get_gpio_in(cpudev, USART_DRE_IRQ));
-    sysbus_connect_irq(busdev, 2, qdev_get_gpio_in(cpudev, USART_TXC_IRQ));
-    sysbus_connect_irq(SYS_BUS_DEVICE(sms->prr[1]), PRR1_BIT_PRUSART1,
-            qdev_get_gpio_in(DEVICE(sms->usart0), 0));*/
-	
-	/* PORT A */
-    sms->porta = AVR_PORT(object_new(TYPE_AVR_PORT));
-    busdev = SYS_BUS_DEVICE(sms->porta);
-    sysbus_mmio_map(busdev, 0, OFFSET_DATA + PORTA_BASE);
-    qdev_prop_set_chr(DEVICE(sms->porta), "chardev", serial_hd(0));
-	object_property_set_bool(OBJECT(sms->porta), true, "realized",
-			&error_fatal);
-
-    // PORT A ADC!
-    sms->adc = AVR_ADC(object_new(TYPE_AVR_ADC));
-    //AVRADCClass *dc = AVR_ADC_GET_CLASS(sms->adc);
-    AVRPeripheralClass *pc = AVR_PERIPHERAL_GET_CLASS(sms->adc);
-    add_peripheral_to_port(sms->porta, pc, sms->adc);
-    for(uint32_t i = 0; i < NUM_PINS; i++)
-        map_peripheral_to_pin(sms->porta, pc, sms->adc, i);
-
-    busdev = SYS_BUS_DEVICE(sms->adc);
-    sysbus_mmio_map(busdev, 0, OFFSET_DATA + 0x78);
-    object_property_set_bool(OBJECT(sms->adc), true, "realized",
-        &error_fatal);
-    sms->porta->name = 'A';
-    printf("Port A initiated\n");
 
     /* PORT B */
     sms->portb = AVR_PORT(object_new(TYPE_AVR_PORT));
     busdev = SYS_BUS_DEVICE(sms->portb);
     sysbus_mmio_map(busdev, 0, OFFSET_DATA + PORTB_BASE);
-    qdev_prop_set_chr(DEVICE(sms->portb), "chardev", serial_hd(1));
+    qdev_prop_set_chr(DEVICE(sms->portb), "chardev", serial_hd(0));
+    sms->portb->name = 'B';
 	object_property_set_bool(OBJECT(sms->portb), true, "realized",
 			&error_fatal);
-    sms->portb->name = 'B';
 
-    /* PORT B Timer 0 */
+
+    /* PORT E */
+    sms->porte = AVR_PORT(object_new(TYPE_AVR_PORT));
+    busdev = SYS_BUS_DEVICE(sms->porte);
+    sysbus_mmio_map(busdev, 0, OFFSET_DATA + PORTE_BASE);
+    qdev_prop_set_chr(DEVICE(sms->porte), "chardev", serial_hd(1));
+    sms->porte->name = 'E';
+	object_property_set_bool(OBJECT(sms->porte), true, "realized",
+			&error_fatal);
+
+    // UART 0
+    sms->uart0 = AVR_UART(object_new(TYPE_AVR_UART));
+    AVRPeripheralClass *pc1 = AVR_PERIPHERAL_GET_CLASS(sms->uart0);
+    add_peripheral_to_port(sms->porte, pc1, sms->uart0);
+    map_peripheral_to_pin(sms->porte, pc1, sms->uart0, 0);  // RX
+    map_peripheral_to_pin(sms->porte, pc1, sms->uart0, 1);  // TX
+
+    busdev = SYS_BUS_DEVICE(sms->uart0);
+    sysbus_mmio_map(busdev, 0, OFFSET_DATA + USART_BASE);
+
+    sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(cpudev, USART_RXC_IRQ));
+    sysbus_connect_irq(busdev, 1, qdev_get_gpio_in(cpudev, USART_DRE_IRQ));
+    sysbus_connect_irq(busdev, 2, qdev_get_gpio_in(cpudev, USART_TXC_IRQ));
+
+    object_property_set_bool(OBJECT(sms->uart0), true, "realized",
+        &error_fatal);
+
+    // set USART RX & TX Pins
+    sms->uart0->Pin_RX.pPort = (AVRPortState_t*)sms->porte;
+    sms->uart0->Pin_RX.PinNum = 0;
+    sms->uart0->Pin_TX.pPort = (AVRPortState_t*)sms->porte;
+    sms->uart0->Pin_TX.PinNum = 1;
+    // UART0 FINISH
+
+    /* PORT F */
+    sms->portf = AVR_PORT(object_new(TYPE_AVR_PORT));
+    busdev = SYS_BUS_DEVICE(sms->portf);
+    sysbus_mmio_map(busdev, 0, OFFSET_DATA + PORTF_BASE);
+    qdev_prop_set_chr(DEVICE(sms->portf), "chardev", serial_hd(2));
+    sms->portf->name = 'F';
+	object_property_set_bool(OBJECT(sms->portf), true, "realized",
+			&error_fatal);
+
+    /* PORT G */
+    sms->portg = AVR_PORT(object_new(TYPE_AVR_PORT));
+    busdev = SYS_BUS_DEVICE(sms->portg);
+    sysbus_mmio_map(busdev, 0, OFFSET_DATA + PORTG_BASE);
+    qdev_prop_set_chr(DEVICE(sms->portg), "chardev", serial_hd(3));
+    sms->portg->name = 'G';
+	object_property_set_bool(OBJECT(sms->portg), true, "realized",
+			&error_fatal);
+
+    // PORTS Finish
+
+    sms->adc = AVR_ADC(object_new(TYPE_AVR_ADC));
+    AVRPeripheralClass *pc = AVR_PERIPHERAL_GET_CLASS(sms->adc);
+    add_peripheral_to_port(sms->portf, pc, sms->adc);
+    for(uint32_t i = 0; i < NUM_PINS; i++)
+        map_peripheral_to_pin(sms->portf, pc, sms->adc, i);
+
+    busdev = SYS_BUS_DEVICE(sms->adc);
+    sysbus_mmio_map(busdev, 0, OFFSET_DATA + 0x78);
+    object_property_set_bool(OBJECT(sms->adc), true, "realized",
+        &error_fatal);
+	// ADC Finish
+
+    // TIMER 0
     sms->timer0 = AVR_TIMER_8b(object_new(TYPE_AVR_TIMER_8b));
+    AVRPeripheralClass *pc2 = AVR_PERIPHERAL_GET_CLASS(sms->timer0);
+    add_peripheral_to_port(sms->portb, pc2, sms->timer0);
+    add_peripheral_to_port(sms->portg, pc2, sms->timer0);
+    map_peripheral_to_pin(sms->portb, pc2, sms->timer0, 7);
+    map_peripheral_to_pin(sms->portg, pc2, sms->timer0, 5);
+
+    sms->timer0->Output_A.PinNum = 7;
+    sms->timer0->Output_A.pPort = (AVRPortState_t*)sms->portb;
+    sms->timer0->Output_B.PinNum = 5;
+    sms->timer0->Output_B.pPort = (AVRPortState_t*)sms->portg;
+
+    busdev = SYS_BUS_DEVICE(sms->timer0);
+    sysbus_mmio_map(busdev, 0, OFFSET_DATA + TIMER0_BASE);
+    sysbus_mmio_map(busdev, 1, OFFSET_DATA + TIMER0_IMSK_BASE);
+    sysbus_mmio_map(busdev, 2, OFFSET_DATA + TIMER0_IFR_BASE);
+    sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(cpudev, TIMER0_COMPA_IRQ));
+    sysbus_connect_irq(busdev, 1, qdev_get_gpio_in(cpudev, TIMER0_COMPB_IRQ));
+    sysbus_connect_irq(busdev, 2, qdev_get_gpio_in(cpudev, TIMER0_OVF_IRQ));
+    object_property_set_bool(OBJECT(sms->timer0), true, "realized",
+        &error_fatal);
+    // TIMER 0 END
+
+
+    // PORT B Timer 0 
+    /*sms->timer0 = AVR_TIMER_8b(object_new(TYPE_AVR_TIMER_8b));
     AVRPeripheralClass *pc2 = AVR_PERIPHERAL_GET_CLASS(sms->timer0);
     add_peripheral_to_port(sms->portb, pc2, sms->timer0);
     map_peripheral_to_pin(sms->portb, pc2, sms->timer0, 3);
@@ -331,40 +386,10 @@ static void mega2560_init(MachineState *machine)
     object_property_set_bool(OBJECT(sms->timer0), true, "realized",
         &error_fatal);
 
-    printf("Port B initiated\n");
+    printf("Port B initiated\n");*/
 
-    /* PORT D */
-    sms->portd = AVR_PORT(object_new(TYPE_AVR_PORT));
-    busdev = SYS_BUS_DEVICE(sms->portd);
-    sysbus_mmio_map(busdev, 0, OFFSET_DATA + PORTD_BASE);
-    qdev_prop_set_chr(DEVICE(sms->portd), "chardev", serial_hd(2));
-	object_property_set_bool(OBJECT(sms->portd), true, "realized",
-			&error_fatal);
-    sms->portd->name = 'D';
+    
 
-    // PORT D UART!
-    sms->uart0 = AVR_UART(object_new(TYPE_AVR_UART));
-    AVRPeripheralClass *pc1 = AVR_PERIPHERAL_GET_CLASS(sms->uart0);
-    add_peripheral_to_port(sms->portd, pc1, sms->uart0);
-    map_peripheral_to_pin(sms->portd, pc1, sms->uart0, 0);
-    map_peripheral_to_pin(sms->portd, pc1, sms->uart0, 1);
-
-    busdev = SYS_BUS_DEVICE(sms->uart0);
-    sysbus_mmio_map(busdev, 0, OFFSET_DATA + USART_BASE);
-
-    sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(cpudev, USART_RXC_IRQ));
-    sysbus_connect_irq(busdev, 1, qdev_get_gpio_in(cpudev, USART_DRE_IRQ));
-    sysbus_connect_irq(busdev, 2, qdev_get_gpio_in(cpudev, USART_TXC_IRQ));
-
-    object_property_set_bool(OBJECT(sms->uart0), true, "realized",
-        &error_fatal);
-
-    // set USART RX & TX Pins
-    sms->uart0->Pin_RX.pPort = (AVRPortState_t*)sms->portd;
-    sms->uart0->Pin_RX.PinNum = 0;
-    sms->uart0->Pin_TX.pPort = (AVRPortState_t*)sms->portd;
-    sms->uart0->Pin_TX.PinNum = 1;
-    printf("Port D initiated\n---------------------------------\n");
 
     /* Timer 1 built-in periphal */
     
