@@ -10,6 +10,9 @@
 #define ADIF  (1 << 4)
 #define ADSC  (1 << 6)
 
+//#define dprintf(fmt, args...)    fprintf(stderr, fmt, ## args)
+#define dprintf(fmt, args...) 
+
 static void adc_convert(void * opaque)
 {       
     AVRPeripheralState *p = opaque;
@@ -43,7 +46,7 @@ static void adc_convert(void * opaque)
     double x = val * 1000 * 1024 / vref;
     uint16_t final;
 
-    if(x < 0)
+    if(x < 0)   // negative voltage
     {
         x = -x;
         final = (uint16_t)x;
@@ -61,7 +64,7 @@ static void adc_convert(void * opaque)
     
     p->adc = final;     //only take lower 10 bits!
     p->adcsra |= ADIF;  // set ADIF flag to 1
-    //printf("ADC = %i\n", (int)p->adc);
+    dprintf("ADC val = %i\n", (int)p->adc);
 
     p->adcsra &= ~ADSC; // set ADSC flag to 0 to signalize a finished conversion!
     if(p->adcsra & ADIE)
@@ -88,16 +91,18 @@ static int avr_adc_is_active(void *opaque, PinID pin)
 
     uint8_t pinno = pin.PinNum;
 
+    //printf("%d == %d", pinno, (p->admux & 0b00011111));
+
     if(p->adcsra & ADCEN)
     {
         // TODO: Add further possibilites from datasheet!
         if((p->admux & 0b00011111) == pinno)
         {
-            printf("ADC Active = 1\n");
+            dprintf("ADC Active = 1\n");
             return 1;
         }
     }
-    printf("ADC Active = 0\n");
+    dprintf("ADC Active = 0\n");
     return 0;
 }
 
@@ -110,7 +115,7 @@ static void avr_adc_receive(void *opaque, const uint8_t *buffer, int msgid, PinI
     double val;
     memcpy(&val, buffer, sizeof(double));
 
-    printf("Recv V = %5.2fV\n", val);
+    dprintf("Recv V = %f V\n", val);
     uint8_t pinno = pin.PinNum;
     p->adc_voltages[pinno] = val;
 
@@ -141,9 +146,9 @@ static uint64_t avr_adc_read(void *opaque, hwaddr addr, unsigned int size)
         case 4:
             return p->admux;
         case 0: //ADCL
-            return p->adc & 0x00FF;
+            return p->adc & 0x00FF;     // 8 bits
         case 1: //ADCH
-            return ((p->adc & 0x0300) >> 8);
+            return ((p->adc & 0x0300) >> 8);    //bits 8 & 9
         default:
             assert(false);
     }
