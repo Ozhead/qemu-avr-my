@@ -5,6 +5,9 @@
 #include "hw/qdev-properties.h"
 #include "hw/ports/avr_port.h"
 
+//#define dprintf(fmt, args...)    fprintf(stderr, fmt, ## args)
+#define dprintf(fmt, args...) 
+
 static int avr_uart_can_receive(void *opaque)
 {
     AVRPeripheralState *usart = opaque;
@@ -39,7 +42,7 @@ static void avr_uart_receive(void *opaque, const uint8_t *buffer, int msgid, Pin
     //assert(size == 1);
     //assert(!usart->data_valid);   // this may lead to the fact that it crashes when new data is received but not retrieved!
 
-    printf("UART Receive\n");
+    dprintf("UART Receive\n");
     if(pin.PinNum != usart->Pin_RX.PinNum || pin.pPort != usart->Pin_RX.pPort)
     {
         printf("Error: Trying to receive on a UART pin that is not set as RX\n");
@@ -47,16 +50,18 @@ static void avr_uart_receive(void *opaque, const uint8_t *buffer, int msgid, Pin
     }
 
     usart->data = buffer[0];
-    printf("Received UART data: %d\n", buffer[0]);
+    dprintf("Received UART data: %d\n", buffer[0]);
     usart->data_valid = true;
     usart->csra |= USART_CSRA_RXC;
     if (usart->csrb & USART_CSRB_RXCIE) 
     {
-        printf("Interrupt?\n");
+        dprintf("Interrupt?\n");
         qemu_set_irq(usart->rxc_irq, 1);
     }
     else 
-        printf("Interrupt not set!\n");
+    {
+        dprintf("Interrupt not set!\n");
+    }
 }
 
 static void update_char_mask(AVRPeripheralState *usart)
@@ -130,11 +135,12 @@ static uint64_t avr_uart_read(void *opaque, hwaddr addr, unsigned int size)
     case USART_DR:
         if (!(usart->csrb & USART_CSRB_RXEN)) {
             /* Receiver disabled, ignore. */
-            printf("Receiver disabled... Returning 0 @ read access\n");
+            dprintf("Receiver disabled... Returning 0 @ read access\n");
             return 0;
         }
         if (usart->data_valid) {
             data = usart->data & usart->char_mask;
+            dprintf("Returning data: %d while it is %d. Mask is: %d\n", data, usart->data, usart->char_mask);
             usart->data_valid = false;
         } else {
             data = 0;
@@ -142,6 +148,7 @@ static uint64_t avr_uart_read(void *opaque, hwaddr addr, unsigned int size)
         usart->csra &= 0xff ^ USART_CSRA_RXC;
         qemu_set_irq(usart->rxc_irq, 0);
         qemu_chr_fe_accept_input(&usart->chr);
+
         return data;
     case USART_CSRA:
         return usart->csra;
@@ -275,11 +282,11 @@ static uint32_t avr_uart_serialize(void * opaque, PinID pin, uint8_t * pData)
 
     if(pinno != usart->Pin_TX.PinNum || usart->Pin_TX.pPort != pin.pPort)
     {
-        printf("Error: Trying to send over a UART Pin that is not set as TX\n");
+        //printf("Error: Trying to send over a UART Pin that is not set as TX\n");
         return 0;
     }
 
-    printf("AVR UART SERIALIZE\n");
+    dprintf("AVR UART SERIALIZE\n");
     uint8_t hdr = pinno << 5;
     hdr |= 2;   //encoding UART...
     pData[0] = hdr;
