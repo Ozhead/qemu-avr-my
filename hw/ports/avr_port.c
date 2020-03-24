@@ -49,7 +49,10 @@ static void avr_port_receive(void *opaque, const uint8_t *buffer, int size)
             PinID pinid;
             pinid.PinNum = pin_id;
             pinid.pPort = (AVRPortState_t*)port;
-            port->periphs_in_pin[pin_id]->receive(port->states_in_pin[pin_id], buffer + ptr, peripheral_msg_lengths[msg_id], pinid);
+            if(port->periphs_in_pin[pin_id])
+                port->periphs_in_pin[pin_id]->receive(port->states_in_pin[pin_id], buffer + ptr, peripheral_msg_lengths[msg_id], pinid);
+            else
+                printf("Fatal Error: Received a message on Port %c Pin %d but there is no peripheral! MsgID: %d\n", port->name, pin_id, msg_id);
         }
         else
         {
