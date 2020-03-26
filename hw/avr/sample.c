@@ -337,6 +337,11 @@ static void sample_init(MachineState *machine)
     object_property_set_bool(OBJECT(sms->timer0), true, "realized",
         &error_fatal);
 
+    sms->timer0->Output_A.PinNum = 3;
+    sms->timer0->Output_A.pPort = (AVRPortState_t*)sms->portb;
+    sms->timer0->Output_B.PinNum = 4;
+    sms->timer0->Output_B.pPort = (AVRPortState_t*)sms->portb;
+
     /* timer 3 */
     sms->timer3 = AVR_TIMER_16b(object_new(TYPE_AVR_TIMER_16b));
     AVRPeripheralClass *pc3 = AVR_PERIPHERAL_GET_CLASS(sms->timer3);
@@ -384,8 +389,11 @@ static void sample_init(MachineState *machine)
         &error_fatal);
 
     // set USART RX & TX Pins
-    //sms->uart0->pinno_rx = 0;
-    //sms->uart0->pinno_tx = 1;
+    sms->uart0->Pin_RX.pPort = (AVRPortState_t*)sms->portd;
+    sms->uart0->Pin_RX.PinNum = 0;
+    sms->uart0->Pin_TX.pPort = (AVRPortState_t*)sms->portd;
+    sms->uart0->Pin_TX.PinNum = 1;
+
 
     /* timer 1 */
     sms->timer1 = AVR_TIMER_16b(object_new(TYPE_AVR_TIMER_16b));
