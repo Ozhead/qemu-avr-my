@@ -448,7 +448,7 @@ static uint32_t avr_timer_8b_serialize(void * opaque, PinID pin, uint8_t * pData
         }
         else if(mode == 1)  // 
         {
-            printf("Mode 1 for CMPA not enabled\n");
+            printf("Mode 1 not enabled for FAST_PWM with WGMn2 = 0 not enabled\n");
             return 0;
         }
         else if(mode == 3)
@@ -471,8 +471,10 @@ static uint32_t avr_timer_8b_serialize(void * opaque, PinID pin, uint8_t * pData
         }
         else if(mode == 1)  // 
         {
-            printf("Mode 1 for CMPA not enabled\n");
-            return 0;
+            if(pinno == t8->Output_A.PinNum && pin.pPort == t8->Output_A.pPort)
+                val = 0.5f;
+            else
+                printf("Caution: PWM Mode(1) with WGMn2=1 only available for Output A\n");
         }
         else if(mode == 3)
             val = (double)(match + 1) / (double)(top+1);
