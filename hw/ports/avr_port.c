@@ -31,6 +31,7 @@ static void avr_port_receive(void *opaque, const uint8_t *buffer, int size)
     size_t ptr = 0;
     //printf("Calling avr_port_receive %c(%d)\n", buffer[0], size);
     AVRPortState *port = opaque; 
+    dprintf("Start Port Receiving...\n");
     while(ptr != size)
     {
         const uint8_t header = buffer[ptr];
