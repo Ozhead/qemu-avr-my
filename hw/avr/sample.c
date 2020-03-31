@@ -414,6 +414,11 @@ static void sample_init(MachineState *machine)
     object_property_set_bool(OBJECT(sms->timer1), true, "realized",
         &error_fatal);
 
+    sms->timer1->Output_A.PinNum = 5;
+    sms->timer1->Output_A.pPort = (AVRPortState_t*)sms->portd;
+    sms->timer1->Output_B.PinNum = 4;
+    sms->timer1->Output_B.pPort = (AVRPortState_t*)sms->portd;
+
     printf("Port D initiated\n---------------------------------\n");
 
     /* Timer 1 built-in periphal OLD CODE*/
