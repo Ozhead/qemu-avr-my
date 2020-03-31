@@ -60,7 +60,7 @@ static int avr_timer_8b_is_active(void *opaque, PinID pin)
         CLKSRC(t16) == T16_CLKSRC_EXT_RISING ||
         CLKSRC(t16) == T16_CLKSRC_STOPPED) {
         /* Timer is disabled or set to external clock source (unsupported) */
-        printf("No supported clock set...\n");
+        dprintf("No supported clock set...\n");
         return 0;
     }
 
@@ -69,13 +69,22 @@ static int avr_timer_8b_is_active(void *opaque, PinID pin)
         return 0;
     }
 
+    uint8_t com_mode = 0;
     // the pin must be set to output port!
     if(pin.pPort == t16->Output_A.pPort && pin.PinNum == t16->Output_A.PinNum)
     {
         AVRPortState* pPort = (AVRPortState*)t16->Output_A.pPort;  
         uint8_t pin_mask = (1 << pinno);
         if(pPort->ddr & pin_mask)
+        {
+            com_mode = (t16->cra & 0b11000000) >> 6;
+            if(com_mode == 0 || (com_mode == 1 && !(t16->crb & WGM02)))
+            {
+                printf("Output A is disabled due to wrong COM mode\n");
+                return 0;
+            }
             return 1;
+        }
 
         printf("Warning: Are you trying to use PWM while DDR is set to input?");
     }
@@ -84,7 +93,15 @@ static int avr_timer_8b_is_active(void *opaque, PinID pin)
         AVRPortState* pPort = (AVRPortState*)t16->Output_B.pPort;  
         uint8_t pin_mask = (1 << pinno);
         if(pPort->ddr & pin_mask)
+        {
+            com_mode = (t16->cra & 0b00110000) >> 4;
+            if(com_mode == 0 || com_mode == 1)
+            {
+                printf("Output B is disabled due to wrong COM mode\n");
+                return 0;
+            }
             return 1;
+        }
 
         printf("Warning: Are you trying to use PWM while DDR is set to input?");
     }
@@ -455,6 +472,8 @@ static uint32_t avr_timer_8b_serialize(void * opaque, PinID pin, uint8_t * pData
             val = (double)(match + 1) / 256.0;
         else if(mode == 2)
             val = (double)(255 - match) / 256.0;
+
+        dprintf("Val = %f with top = 255\n", val);
     }
     else if(pwm_mode == MODE_FAST_PWM2 || pwm_mode == MODE_PHASE_PWM2)
     {
@@ -480,10 +499,11 @@ static uint32_t avr_timer_8b_serialize(void * opaque, PinID pin, uint8_t * pData
             val = (double)(match + 1) / (double)(top+1);
         else if(mode == 2)
             val = (double)(top - match) / (double)(top+1);
+
+        dprintf("Val = %f with top = %d\n", val, top);
     }
     
 
-    dprintf("Val = %f with top = %d\n", val, top);
     memcpy(pData+1, &val, sizeof(double));
     return 9;
 }
