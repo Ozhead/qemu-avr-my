@@ -86,8 +86,9 @@
 #define VAL16(l, h) ((h << 8) | l)
 #define ERROR(fmt, args...) \
     qemu_log_mask(LOG_GUEST_ERROR, "%s: " fmt "\n", __func__, ## args)
-#define DB_PRINT(fmt, args...) /* Nothing */
-/*#define DB_PRINT(fmt, args...) printf("%s: " fmt "\n", __func__, ## args)*/
+
+#define dprintf(fmt, args...)    fprintf(stderr, fmt, ## args)
+//#define dprintf(fmt, args...) 
 
 
 /* IO Functions */
@@ -100,14 +101,14 @@ static int avr_timer_16b_can_receive(void *opaque)
 static int avr_timer_16b_is_active(void *opaque, PinID pin)
 {
     uint8_t pinno = pin.PinNum;
-    printf("Call Timer16 is active on Pin %d\n", pinno);
+    dprintf("Call Timer16 is active on Pin %d\n", pinno);
     AVRPeripheralState *t16 = opaque;
 
     if (CLKSRC(t16) == T16_CLKSRC_EXT_FALLING ||
         CLKSRC(t16) == T16_CLKSRC_EXT_RISING ||
         CLKSRC(t16) == T16_CLKSRC_STOPPED) {
         /* Timer is disabled or set to external clock source (unsupported) */
-        printf("No supported clock set...\n");
+        dprintf("No supported clock set...\n");
         return 0;
     }
 
@@ -119,12 +120,52 @@ static int avr_timer_16b_is_active(void *opaque, PinID pin)
             return 0;
     }
 
-        // the pin must be set to output port!
+    uint8_t com_mode;
+    // the pin must be set to output port!
     //AVRPortState * pPort = (AVRPortState*)t16->father_port[0];
-    AVRPortState* pPort = (AVRPortState*)t16->Output_A.pPort;
-    uint8_t pin_mask = (1 << pinno);
-    if(pPort->ddr & pin_mask)
-        return 1;
+    if(pin.pPort == t16->Output_A.pPort && pin.PinNum == t16->Output_A.PinNum)
+    {
+        AVRPortState* pPort = (AVRPortState*)t16->Output_A.pPort;
+        uint8_t pin_mask = (1 << pinno);
+        com_mode = (t16->cra & 0b11000000) >> 6;
+        if(pPort->ddr & pin_mask)
+        {
+            if(com_mode == 0 || (com_mode == 1 && MODE(t16) != T16_MODE_FAST_PWM_ICRA && MODE(t16) != T16_MODE_PHASE_FREQUENCY_PWM_OCRA))
+            {
+                dprintf("PWM Output A inactive due to wrong COM mode\n");
+                return 0;
+            }
+            return 1;
+        }
+
+        dprintf("Warning: Are you trying to use PWM while DDR is set to input?\n");
+    }
+    else if(pin.pPort == t16->Output_B.pPort && pin.PinNum == t16->Output_B.PinNum)
+    {
+        AVRPortState* pPort = (AVRPortState*)t16->Output_B.pPort;
+        uint8_t pin_mask = (1 << pinno);
+        com_mode = (t16->cra & 0b00110000) >> 4;
+        if(pPort->ddr & pin_mask)
+        {
+            if(com_mode == 0 || com_mode == 1)
+            {
+                dprintf("PWM Output B inactive due to wrong COM mode\n");
+                return 0;
+            }
+            return 1;
+        }
+
+        dprintf("Warning: Are you trying to use PWM while DDR is set to input?\n");
+    }
+    else if(pin.pPort == t16->Output_C.pPort && pin.PinNum == t16->Output_C.PinNum)
+    {
+        AVRPortState* pPort = (AVRPortState*)t16->Output_C.pPort;
+        uint8_t pin_mask = (1 << pinno);
+        if(pPort->ddr & pin_mask)
+            return 1;
+
+        printf("Warning: Are you trying to use PWM while DDR is set to input?");
+    }
 
     return 0;
 }
@@ -142,28 +183,30 @@ static uint32_t avr_timer_16b_serialize(void * opaque, PinID pin, uint8_t * pDat
     uint16_t top;
     uint16_t compmatch;
 
+    dprintf("Call Timer16 serialize\n");
     // set correct top value
     switch(mode)
     {
         case T16_MODE_FAST_PWM_8:
         case T16_MODE_PHASE_PWM_8:
-            top = 0xFF + 1;
+            top = 0xFF;
             //compmatch = OCRA(t16);
             break;
         case T16_MODE_FAST_PWM_9:
         case T16_MODE_PHASE_PWM_9:
-            top = 0x1FF + 1;
+            top = 0x1FF;
             //compmatch = OCRA(t16);
             break;
         case T16_MODE_FAST_PWM_10:
         case T16_MODE_PHASE_PWM_10:
-            top = 0x3FF + 1;
+            top = 0x3FF;
             //top = OCRA(t16);
             break;
         case T16_MODE_FAST_PWM_ICRA:
         case T16_MODE_PHASE_PWM_ICRA:
         case T16_MODE_PHASE_FREQUENCY_PWM_ICR:
-            top = ICR(t16); //TODO
+            top = ICR(t16); 
+            dprintf("Read TOP=ICR=%d\n", top);
             if(top < 3)
             {
                 printf("Warning: Minimum value for TOP is 3. Given top value is %d. Setting TOP = 3\n", top);
@@ -186,19 +229,21 @@ static uint32_t avr_timer_16b_serialize(void * opaque, PinID pin, uint8_t * pDat
 
     uint8_t pinno = pin.PinNum;
 
-    if(pinno == 4)
+    if(pin.pPort == t16->Output_A.pPort && pin.PinNum == t16->Output_A.PinNum)
     {
-        hdr = 0b10000100;
+        hdr = 0b00000100;    //PWM
+        hdr |= (pinno << 5);
         com_mode = (t16->cra & 0b11000000) >> 6;
         compmatch = OCRA(t16);
-        printf("Pin3 Mode set to %d\n", mode);
+        dprintf("Pin3 Mode set to %d\n", mode);
     }
-    else if(pinno == 5)
+    else if(pin.pPort == t16->Output_B.pPort && pin.PinNum == t16->Output_B.PinNum)
     {
-        hdr = 0b10100100;
+        hdr = 0b00000100;    //PWM
+        hdr |= (pinno << 5);
         com_mode = (t16->cra & 0b00110000) >> 4;
         compmatch = OCRB(t16);
-        printf("Pin4 Mode = %d\n", mode);
+        dprintf("Pin4 Mode = %d\n", mode);
     }
     else
     {
@@ -255,17 +300,33 @@ static uint32_t avr_timer_16b_serialize(void * opaque, PinID pin, uint8_t * pDat
         {
             if(com_mode == 2)
             {
-                val = (double)(top-1 - compmatch) / (double)(top);
-                printf("Val = %5.6f with compmatch = %d and top = %d (non-inverted)\n", val, compmatch, top);
+                val = ((double)top - (double)compmatch) / ((double)top+1.0);
+                dprintf("Val = %5.6f with compmatch = %d and top = %d (non-inverted)\n", val, compmatch, top);
             }
             else if(com_mode == 3)
             {
                 //TODO
-                val = (double)(compmatch + 1) / (double)(top);
-                printf("Val = %5.6f with compmatch = %d and top = %d (inverted)\n", val, compmatch, top);
+                val = (double)(compmatch + 1) / (double)(top+1);
+                dprintf("Val = %5.6f with compmatch = %d and top = %d (inverted)\n", val, compmatch, top);
             }
-            else if(com_mode == 1 && pinno == 4)    // TODO
-                val = 0.5;
+            else if(com_mode == 1)   
+            {
+                if(pin.pPort == t16->Output_A.pPort && pin.PinNum == t16->Output_A.PinNum)
+                {
+                    if(mode == T16_MODE_FAST_PWM_ICRA || mode == T16_MODE_FAST_PWM_OCRA)
+                        val = 0.5;
+                    else
+                    {
+                        ;       // compiler error w/o dprintf
+                        dprintf("Warning: No PWM value sent as OC0B will be disconnected?\n");
+                    }
+                }
+                else if(pin.pPort == t16->Output_B.pPort && pin.PinNum == t16->Output_B.PinNum)
+                {
+                    val = 0;
+                    printf("Caution: COM_Mode 01 is not valid for Output B\n");
+                }
+            }
             else
             {
                 printf("This port is disabled for this COMnx configuration\n");
@@ -292,30 +353,62 @@ static void avr_timer_16b_toggle_pwm(AVRPeripheralState * t16)
             was_pwm = 0;
 
         // a change in DDR is not captured anyway; a change in DDR will toggle a resend in the port itself
-        if(is_pwm != was_pwm || OCRA(t16) != t16->last_ocra || OCRB(t16) != t16->last_ocrb || CLKSRC(t16) != t16->prev_clk_src)   //or clock changed
+        if(is_pwm != was_pwm || OCRA(t16) != t16->last_ocra || OCRB(t16) != t16->last_ocrb || CLKSRC(t16) != t16->prev_clk_src
+            || ICR(t16) != t16->last_icr)   //or clock changed
         {
             t16->last_ocra = OCRA(t16);
             t16->last_ocrb = OCRB(t16);
+            t16->last_icr = ICR(t16);
 
             //AVRPortState * pPort = (AVRPortState*)t16->father_port[0];
-            AVRPortState* pPort = (AVRPortState*)t16->Output_A.pPort;
-            pPort->send_data(pPort);
+            AVRPortState* pPortA = (AVRPortState*)t16->Output_A.pPort;
+            pPortA->send_data(pPortA);
+
+            AVRPortState* pPortB = (AVRPortState*)t16->Output_B.pPort;
+            if(pPortB && pPortB != pPortA)
+            {
+                pPortB->send_data(pPortB);
+            }
+
+            AVRPortState* pPortC = (AVRPortState*)t16->Output_C.pPort;
+            if(pPortC && pPortC != pPortA && pPortC != pPortB)
+                pPortC->send_data(pPortC);
         }
 
         t16->last_mode = curr_mode;
     }
 
     // PWM mode changed OR one of the compare registers changed OR the clock has been stopped!
-    /*if(curr_pwm != t16->last_pwm || t16->ocra != t16->last_ocra || t16->ocrb != t16->last_ocrb || CLKSRC(t16) == T16_CLKSRC_STOPPED)
+    uint16_t ocra = OCRA(t16);
+    uint16_t ocrb = OCRB(t16);
+    uint16_t icr = ICR(t16);
+    if(curr_mode != t16->last_pwm || ocra != t16->last_ocra || ocrb != t16->last_ocrb || CLKSRC(t16) == T16_CLKSRC_STOPPED
+        || icr != t16->last_icr)
     {
-        printf("Change in PWM detected!\n");
-        t16->last_pwm = curr_pwm;
-        t16->last_ocra = t16->ocra;
-        t16->last_ocrb = t16->ocrb;
+        dprintf("Change in PWM detected!\n");
+        t16->last_pwm = curr_mode;
+        t16->last_ocra = ocra;
+        t16->last_ocrb = ocrb;
+        t16->last_icr = icr;
 
-        AVRPortState * pPort = (AVRPortState*)t16->father_port;
-        pPort->send_data(pPort);
-    }*/
+        dprintf("Sending Port Output A\n");
+        AVRPortState * pPortA = (AVRPortState*)t16->Output_A.pPort;
+        pPortA->send_data(pPortA);
+
+        dprintf("Sending Port Output B\n");
+        AVRPortState* pPortB = (AVRPortState*)t16->Output_B.pPort;
+        if(pPortB && pPortB != pPortA)
+        {
+            pPortB->send_data(pPortB);
+        }
+
+        dprintf("Sending Port Output C\n");
+        AVRPortState* pPortC = (AVRPortState*)t16->Output_C.pPort;
+        if(pPortC && pPortC != pPortA && pPortC != pPortB)
+            pPortC->send_data(pPortC);
+        
+        dprintf("Done\n");
+    }
 }
 
 /* Timer functions */
@@ -379,7 +472,7 @@ static void avr_timer_16b_clksrc_update(AVRPeripheralState *t16)
     }
     t16->freq_hz = t16->cpu_freq_hz / divider;
     t16->period_ns = NANOSECONDS_PER_SECOND / t16->freq_hz;
-    DB_PRINT("Timer frequency %" PRIu64 " hz, period %" PRIu64 " ns (%f s)",
+    dprintf("Timer frequency %" PRIu64 " hz, period %" PRIu64 " ns (%f s)",
              t16->freq_hz, t16->period_ns, 1 / (double)t16->freq_hz);
 end:
     return;
@@ -411,6 +504,7 @@ static void avr_timer_16b_set_alarm(AVRPeripheralState *t16)
         if (OCRA(t16) < alarm_offset && OCRA(t16) > CNT(t16)) {
             alarm_offset = OCRA(t16);
             next_interrupt = INTERRUPT_COMPA;
+            dprintf("T16_MODE_CTC_OCRA gefunden\n");
         }
        break;
     case T16_MODE_CTC_ICR:
@@ -463,8 +557,8 @@ static void avr_timer_16b_set_alarm(AVRPeripheralState *t16)
         t16->reset_time_ns + ((CNT(t16) + alarm_offset) * t16->period_ns);
     timer_mod(t16->timer, alarm_ns);
 
-    //printf("16b next alarm %" PRIu64 " ns from now\n",
-    //    alarm_offset * t16->period_ns);
+    dprintf("16b next alarm %" PRIu64 " ns from now (%" PRIu64 ")\n",
+        alarm_offset * t16->period_ns, alarm_offset);
 
 end:
     return;
@@ -484,11 +578,11 @@ static void avr_timer_16b_interrupt(void *opaque)
         return;
     }
 
-    DB_PRINT("interrupt, cnt = %d", CNT(t16));
+    //dprintf("interrupt, cnt = %d", CNT(t16));
 
     /* Counter overflow */
     if (t16->next_interrupt == INTERRUPT_OVERFLOW) {
-        DB_PRINT("0xffff overflow");
+       //dprintf("0xffff overflow");
         avr_timer_16b_clock_reset(t16);
         if (t16->imsk & T16_INT_TOV) {
             t16->ifr |= T16_INT_TOV;
@@ -497,12 +591,17 @@ static void avr_timer_16b_interrupt(void *opaque)
     }
     /* Check for ocra overflow in CTC mode */
     if (mode == T16_MODE_CTC_OCRA && t16->next_interrupt == INTERRUPT_COMPA) {
-        DB_PRINT("CTC OCRA overflow");
+        dprintf("ns = %" PRIu64 "\n", qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL));
+        dprintf("CTC OCRA overflow\n");
+        dprintf("ns = %" PRIu64 "\n", qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL));
         avr_timer_16b_clock_reset(t16);
+
+        dprintf("ticks = %" PRIu64 "\n", cpu_get_ticks());
+        dprintf("ns = %" PRIu64 "\n", cpu_get_ticks());
     }
     /* Check for icr overflow in CTC mode */
     if (mode == T16_MODE_CTC_ICR && t16->next_interrupt == INTERRUPT_CAPT) {
-        DB_PRINT("CTC ICR overflow");
+        dprintf("CTC ICR overflow");
         avr_timer_16b_clock_reset(t16);
         if (t16->imsk & T16_INT_IC) {
             t16->ifr |= T16_INT_IC;
@@ -663,10 +762,10 @@ static void avr_timer_16b_write(void *opaque, hwaddr offset,
     uint8_t val8 = (uint8_t)val64;
     t16->prev_clk_src = CLKSRC(t16);
 
-    //AVRPortState * pPort = (AVRPortState*)t16->father_port[0];
     AVRPortState* pPort = (AVRPortState*)t16->Output_A.pPort;
-    printf("Timer16 write of Port %c\n", pPort->name);
-    DB_PRINT("write %d to offset %d", val8, (uint8_t)offset);
+    pPort->name = pPort->name;  // to prevent compiler errors due to unused variable
+    dprintf("Timer16 write of Port %c\n", pPort->name);
+    dprintf("write %d to offset %d\n", val8, (uint8_t)offset);
 
     switch (offset) {
     case T16_CRA:
@@ -686,7 +785,8 @@ static void avr_timer_16b_write(void *opaque, hwaddr offset,
         }
         if (CLKSRC(t16) != t16->prev_clk_src) {
             avr_timer_16b_clksrc_update(t16);
-            if (t16->prev_clk_src == T16_CLKSRC_STOPPED) {
+            if (t16->prev_clk_src == T16_CLKSRC_STOPPED) 
+            {
                 t16->reset_time_ns = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
             }
         }
@@ -717,16 +817,18 @@ static void avr_timer_16b_write(void *opaque, hwaddr offset,
         break;
     case T16_ICRL:
         /* ICR can only be written in mode T16_MODE_CTC_ICR */
+        t16->icrl = val8;
+        avr_timer_16b_toggle_pwm(t16);
         if (MODE(t16) == T16_MODE_CTC_ICR) {
             t16->icrl = val8;
             t16->icrh = t16->rtmp;
-            avr_timer_16b_toggle_pwm(t16);
         }
         break;
     case T16_ICRH:
+        t16->icrh = val8;
+        avr_timer_16b_toggle_pwm(t16);
         if (MODE(t16) == T16_MODE_CTC_ICR) {
             t16->rtmp = val8;
-            avr_timer_16b_toggle_pwm(t16);
         }
         break;
     case T16_OCRAL:
@@ -735,10 +837,12 @@ static void avr_timer_16b_write(void *opaque, hwaddr offset,
          * trigger an interrupt, when CNT is equal to the value here
          */
         t16->ocral = val8;
+        dprintf("Write OCRAL\n");
         avr_timer_16b_toggle_pwm(t16);
         break;
     case T16_OCRAH:
         t16->ocrah = val8;
+        dprintf("Write OCRAH\n");
         avr_timer_16b_toggle_pwm(t16);
         break;
     case T16_OCRBL:
