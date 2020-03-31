@@ -51,6 +51,7 @@
 #include "include/hw/ports/avr_port.h"
 #include "include/hw/ports/avr_uart.h"
 #include "include/hw/ports/avr_timer_8b.h"
+#include "include/hw/ports/avr_timer_16b.h"
 #include "elf.h"
 #include "hw/misc/unimp.h"
 #include "include/hw/ports/adc.h"
@@ -137,12 +138,13 @@ typedef struct {
     MemoryRegion *ram;
     MemoryRegion *flash;
     AVRUsartState *usart0;
-    AVRTimer16State *timer1;
+    //AVRTimer16State *timer1;
     AVRMaskState *prr[2];
 	
     /* PORT B */
     AVRPortState * portb;
     AVRPeripheralState * timer0;
+    AVRPeripheralState * timer1;
 
     /* PORT E */
     AVRPortState * porte;
@@ -361,35 +363,32 @@ static void mega2560_init(MachineState *machine)
     sysbus_connect_irq(busdev, 2, qdev_get_gpio_in(cpudev, TIMER0_OVF_IRQ));
     object_property_set_bool(OBJECT(sms->timer0), true, "realized",
         &error_fatal);
-    // TIMER 0 END
+    // TIMER 0 END    
 
 
-    // PORT B Timer 0 
-    /*sms->timer0 = AVR_TIMER_8b(object_new(TYPE_AVR_TIMER_8b));
-    AVRPeripheralClass *pc2 = AVR_PERIPHERAL_GET_CLASS(sms->timer0);
-    add_peripheral_to_port(sms->portb, pc2, sms->timer0);
-    map_peripheral_to_pin(sms->portb, pc2, sms->timer0, 3);
-    map_peripheral_to_pin(sms->portb, pc2, sms->timer0, 4);
+    /* timer 1 */
+    sms->timer1 = AVR_TIMER_16b(object_new(TYPE_AVR_TIMER_16b));
+    AVRPeripheralClass *pc4 = AVR_PERIPHERAL_GET_CLASS(sms->timer1);
+    add_peripheral_to_port(sms->portb, pc4, sms->timer1);
+    map_peripheral_to_pin(sms->portb, pc4, sms->timer1, 5);
+    map_peripheral_to_pin(sms->portb, pc4, sms->timer1, 6);
 
-    sms->timer0->Output_A.PinNum = 3;
-    sms->timer0->Output_A.pPort = (AVRPortState_t*)sms->portb;
-    sms->timer0->Output_B.PinNum = 4;
-    sms->timer0->Output_B.pPort = (AVRPortState_t*)sms->portb;
-
-    busdev = SYS_BUS_DEVICE(sms->timer0);
-    sysbus_mmio_map(busdev, 0, OFFSET_DATA + TIMER0_BASE);
-    sysbus_mmio_map(busdev, 1, OFFSET_DATA + TIMER0_IMSK_BASE);
-    sysbus_mmio_map(busdev, 2, OFFSET_DATA + TIMER0_IFR_BASE);
-    sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(cpudev, TIMER0_COMPA_IRQ));
-    sysbus_connect_irq(busdev, 1, qdev_get_gpio_in(cpudev, TIMER0_COMPB_IRQ));
-    sysbus_connect_irq(busdev, 2, qdev_get_gpio_in(cpudev, TIMER0_OVF_IRQ));
-    object_property_set_bool(OBJECT(sms->timer0), true, "realized",
+    busdev = SYS_BUS_DEVICE(sms->timer1);
+    sysbus_mmio_map(busdev, 0, OFFSET_DATA + TIMER1_BASE);
+    sysbus_mmio_map(busdev, 1, OFFSET_DATA + TIMER1_IMSK_BASE);
+    sysbus_mmio_map(busdev, 2, OFFSET_DATA + TIMER1_IFR_BASE);
+    sysbus_connect_irq(busdev, 0, qdev_get_gpio_in(cpudev, TIMER1_CAPT_IRQ));
+    sysbus_connect_irq(busdev, 1, qdev_get_gpio_in(cpudev, TIMER1_COMPA_IRQ));
+    sysbus_connect_irq(busdev, 2, qdev_get_gpio_in(cpudev, TIMER1_COMPB_IRQ));
+    sysbus_connect_irq(busdev, 3, qdev_get_gpio_in(cpudev, TIMER1_COMPA_IRQ));  // Atmega1284p does not have a COMPC interrupt, so we just remap it to COMPA
+    sysbus_connect_irq(busdev, 4, qdev_get_gpio_in(cpudev, TIMER1_OVF_IRQ));
+    object_property_set_bool(OBJECT(sms->timer1), true, "realized",
         &error_fatal);
 
-    printf("Port B initiated\n");*/
-
-    
-
+    sms->timer1->Output_A.PinNum = 5;
+    sms->timer1->Output_A.pPort = (AVRPortState_t*)sms->portb;
+    sms->timer1->Output_B.PinNum = 6;
+    sms->timer1->Output_B.pPort = (AVRPortState_t*)sms->portb;
 
     /* Timer 1 built-in periphal */
     
