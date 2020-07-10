@@ -364,7 +364,7 @@ static const TypeInfo avr_uart_info = {
 
 static void avr_uart_register_types(void)
 {
-    printf("UART rausgeballert\n");
+    //printf("UART rausgeballert\n");
     type_register_static(&avr_uart_info);
 }
 

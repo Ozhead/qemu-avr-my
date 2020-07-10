@@ -68,7 +68,9 @@
         "typeinfo": "c",
         "random": "c",
         "avr_timer_16b.h": "c",
-        "unimp.h": "c"
+        "unimp.h": "c",
+        "qdev-properties.h": "c",
+        "main-loop.h": "c"
     }
     
 }

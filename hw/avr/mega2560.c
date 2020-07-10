@@ -92,6 +92,8 @@
 #define PORTF_BASE 0x2F
 #define PORTG_BASE 0x32
 
+#define PORTK_BASE 0x106
+
 /* Interrupt numbers used by peripherals */
 /*#define USART_RXC_IRQ 24
 #define USART_DRE_IRQ 25
@@ -157,6 +159,8 @@ typedef struct {
     /* PORT G */
     AVRPortState * portg;
     // + timer0
+
+    AVRPortState * portk;
 
 } Mega2560MachineState;
 
@@ -256,8 +260,8 @@ static void mega2560_init(MachineState *machine)
 
     memory_region_allocate_system_memory(
         sms->ram, NULL, "avr.ram", SIZE_SRAM + SIZE_EXMEM);
-    //memory_region_add_subregion(system_memory, OFFSET_DATA + 0x200, sms->ram);
-    memory_region_add_subregion(system_memory, OFFSET_DATA + 0x100, sms->ram);      // CAUTION TOO: Here the offset (0x100) must be set correctly, too. Or else global data won't work. (IO register are 0xFF long => 0x100 starts data register)
+    memory_region_add_subregion(system_memory, OFFSET_DATA + 0x200, sms->ram);
+    //memory_region_add_subregion(system_memory, OFFSET_DATA + 0x100, sms->ram);      // CAUTION TOO: Here the offset (0x100) must be set correctly, too. Or else global data won't work. (IO register are 0xFF long => 0x100 starts data register)
 
     /* Power Reduction built-in peripheral */
     sms->prr[0] = AVR_MASK(sysbus_create_simple(TYPE_AVR_MASK,
@@ -327,6 +331,15 @@ static void mega2560_init(MachineState *machine)
 	object_property_set_bool(OBJECT(sms->portg), true, "realized",
 			&error_fatal);
 
+    /* PORT K */
+    sms->portk = AVR_PORT(object_new(TYPE_AVR_PORT));
+    busdev = SYS_BUS_DEVICE(sms->portk);
+    sysbus_mmio_map(busdev, 0, OFFSET_DATA + PORTK_BASE);
+    qdev_prop_set_chr(DEVICE(sms->portk), "chardev", serial_hd(4));
+    sms->portk->name = 'K';
+	object_property_set_bool(OBJECT(sms->portk), true, "realized",
+			&error_fatal);
+
     // PORTS Finish
 
     sms->adc = AVR_ADC(object_new(TYPE_AVR_ADC));
@@ -334,6 +347,12 @@ static void mega2560_init(MachineState *machine)
     add_peripheral_to_port(sms->portf, pc, sms->adc);
     for(uint32_t i = 0; i < NUM_PINS; i++)
         map_peripheral_to_pin(sms->portf, pc, sms->adc, i);
+
+    add_peripheral_to_port(sms->portk, pc, sms->adc);
+    for(uint32_t i = 0; i < NUM_PINS; i++)
+        map_peripheral_to_pin(sms->portk, pc, sms->adc, i);
+    sms->adc->ADC_Port1 = (AVRPortState_t*)sms->portf;
+    sms->adc->ADC_Port2 = (AVRPortState_t*)sms->portk;
 
     busdev = SYS_BUS_DEVICE(sms->adc);
     sysbus_mmio_map(busdev, 0, OFFSET_DATA + 0x78);

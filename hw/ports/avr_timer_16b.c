@@ -87,8 +87,8 @@
 #define ERROR(fmt, args...) \
     qemu_log_mask(LOG_GUEST_ERROR, "%s: " fmt "\n", __func__, ## args)
 
-#define dprintf(fmt, args...)    fprintf(stderr, fmt, ## args)
-//#define dprintf(fmt, args...) 
+//#define dprintf(fmt, args...)    fprintf(stderr, fmt, ## args)
+#define dprintf(fmt, args...) 
 
 
 /* IO Functions */
@@ -298,18 +298,32 @@ static uint32_t avr_timer_16b_serialize(void * opaque, PinID pin, uint8_t * pDat
         }
         else
         {
+            // inverting and non-inverting mode
             if(com_mode == 2)
             {
-                val = ((double)top - (double)compmatch) / ((double)top+1.0);
+                if(mode == 8 || mode == 9 || mode == 10 || mode == 11)  // Phase/Frequency correct PWM
+                    val = ((double)top - (double)compmatch) / ((double)top);
+                else                                                    // FAST PWM
+                    val = ((double)top - (double)compmatch) / ((double)top+1.0);
                 dprintf("Val = %5.6f with compmatch = %d and top = %d (non-inverted)\n", val, compmatch, top);
             }
             else if(com_mode == 3)
             {
-                //TODO
-                val = (double)(compmatch + 1) / (double)(top+1);
+                if(mode == 8 || mode == 9 || mode == 10 || mode == 11)  // Phase/Frequency correct PWM
+                {
+                    val = (double)(compmatch) / (double)(top);
+                    //printf("ES SOLLTE BALLERN\n");
+                }
+                else        // FAST PWM
+                {
+                    //val = (double)(compmatch + 1) / (double)(top+1);
+                    val = (double)(compmatch) / (double)(top);
+                    //printf("FAST PWM WIRD GEBALLERT\n");
+                }
+
                 dprintf("Val = %5.6f with compmatch = %d and top = %d (inverted)\n", val, compmatch, top);
             }
-            else if(com_mode == 1)   
+            else if(com_mode == 1)   // mode to change frequency 
             {
                 if(pin.pPort == t16->Output_A.pPort && pin.PinNum == t16->Output_A.PinNum)
                 {
@@ -344,6 +358,8 @@ static void avr_timer_16b_toggle_pwm(AVRPeripheralState * t16)
     uint8_t curr_mode = MODE(t16);
     uint8_t was_pwm = 1, is_pwm = 1;
     //uint8_t curr_pwm = t16->cra & 0b11110011;
+
+    dprintf("Call Toggle PWM\n");
 
     if(curr_mode != t16->last_mode)
     {

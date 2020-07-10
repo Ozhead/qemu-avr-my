@@ -60,6 +60,8 @@
 #include "hw/boards.h"
 #include "hw/hw.h"
 
+#include "qemu/counter.h"
+
 #ifdef CONFIG_LINUX
 
 #include <sys/prctl.h>
@@ -1540,6 +1542,8 @@ static void *qemu_tcg_rr_cpu_thread_fn(void *arg)
     /* process any pending work */
     cpu->exit_request = 1;
 
+    static int cycle = 0;
+
     while (1) {
         qemu_mutex_unlock_iothread();
         replay_mutex_lock();
@@ -1574,15 +1578,23 @@ static void *qemu_tcg_rr_cpu_thread_fn(void *arg)
                 if(!cpu->singlestep_enabled || cpu->steps_to_execute <= 0)
                     cpu->steps_to_execute = 1;
 
-                //printf("Executing %d steps!\n", cpu->steps_to_execute);
+
+                cycle++;
+                //printf("Executing %d steps! Cycle = %d\n", cpu->steps_to_execute, cycle);
                 for(int i = 0; i < cpu->steps_to_execute; i++)
                 {
                     prepare_icount_for_run(cpu);
+
+                    qemu_mutex_lock_iothread();
+                    counter_increment();
+                    qemu_mutex_unlock_iothread();
+
                     r = tcg_cpu_exec(cpu);
                 
                     process_icount_data(cpu);
 
                 }
+                //printf("STEP DONE---------------------------\n");
                 qemu_mutex_lock_iothread();
 
                 if (r == EXCP_DEBUG) {

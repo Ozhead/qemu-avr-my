@@ -18,13 +18,20 @@ static void adc_convert(void * opaque)
     AVRPeripheralState *p = opaque;
     double val, vref;
     // get the correct input value...
-    uint8_t curr_pin = p->admux & 0b00011111;
+    uint8_t curr_pin = ((p->adcsrb & 0b00001000) << 2) | (p->admux & 0b00011111);
     if(curr_pin < 8)
     {
         val = p->adc_voltages[curr_pin];
     }
+    else if(curr_pin >= 32 && curr_pin <= 39)
+    {
+        val = p->adc_voltages[curr_pin-24];
+    }
     else    // todo different conversions!
+    {
+        printf("Curr_pin = %d\n", curr_pin);
         assert(false);
+    }
 
     uint8_t vref_selected = p->admux >> 6;
     switch(vref_selected)
@@ -44,6 +51,8 @@ static void adc_convert(void * opaque)
     }
 
     double x = val * 1000 * 1024 / vref;
+    x = x + 0.5;        // Rounding!
+    dprintf("ADC calculated %lf\n", x);
     uint16_t final;
 
     if(x < 0)   // negative voltage
@@ -64,7 +73,7 @@ static void adc_convert(void * opaque)
     
     p->adc = final;     //only take lower 10 bits!
     p->adcsra |= ADIF;  // set ADIF flag to 1
-    dprintf("ADC val = %i\n", (int)p->adc);
+    dprintf("ADC val = %i on pin %d\n", (int)p->adc, curr_pin);
 
     p->adcsra &= ~ADSC; // set ADSC flag to 0 to signalize a finished conversion!
     if(p->adcsra & ADIE)
@@ -115,9 +124,15 @@ static void avr_adc_receive(void *opaque, const uint8_t *buffer, int msgid, PinI
     double val;
     memcpy(&val, buffer, sizeof(double));
 
-    dprintf("Recv V = %f V\n", val);
+    dprintf("Recv V = %f V on pin %d\n", val, pin.PinNum);
+
+
     uint8_t pinno = pin.PinNum;
-    p->adc_voltages[pinno] = val;
+    if(pin.pPort == p->ADC_Port2)
+        pinno += NUM_PINS;
+
+    if(pin.pPort == p->ADC_Port1 || pin.pPort == p->ADC_Port2)
+        p->adc_voltages[pinno] = val;
 
     /*if(avr_adc_is_active(opaque, pinno))
     {
@@ -146,8 +161,10 @@ static uint64_t avr_adc_read(void *opaque, hwaddr addr, unsigned int size)
         case 4:
             return p->admux;
         case 0: //ADCL
+            dprintf("Reading ADCL: %i -> %i\n", p->adc, p->adc & 0x00FF);
             return p->adc & 0x00FF;     // 8 bits
         case 1: //ADCH
+            dprintf("Reading ADCL: %i -> %i\n", p->adc, ((p->adc & 0x0300) >> 8));
             return ((p->adc & 0x0300) >> 8);    //bits 8 & 9
         default:
             assert(false);

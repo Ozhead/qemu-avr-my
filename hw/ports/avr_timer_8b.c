@@ -5,8 +5,8 @@
 #include "hw/qdev-properties.h"
 #include "hw/ports/avr_port.h"
 
-#define WGM00   0
-#define WGM01   1
+#define WGM00   1
+#define WGM01   2
 #define WGM02   8
 
 #define MODE_NORMAL 0
@@ -117,12 +117,14 @@ static void avr_timer_8b_receive(void *opaque, const uint8_t *buffer, int msgid,
 static uint64_t avr_timer_8b_read_ifr(void *opaque, hwaddr addr, unsigned int size)
 {
     assert(size == 1);
+    //printf("Reading IFR...\n");
     AVRPeripheralState *t16 = opaque;
     if (addr != 0) 
     {
         printf("Reading IFR that is not implemented!\n");
         return 0;
     }
+    //printf("Returning IFR = %d\n", t16->ifr);
     return t16->ifr;
 }
 
@@ -177,10 +179,11 @@ end:
 //
 static void avr_timer_8b_set_alarm(AVRPeripheralState *t16)
 {
-    if (CLKSRC(t16) == T16_CLKSRC_EXT_FALLING ||
+    return;
+    /*if (CLKSRC(t16) == T16_CLKSRC_EXT_FALLING ||
         CLKSRC(t16) == T16_CLKSRC_EXT_RISING ||
         CLKSRC(t16) == T16_CLKSRC_STOPPED) {
-        /* Timer is disabled or set to external clock source (unsupported) */
+        // Timer is disabled or set to external clock source (unsupported) 
         dprintf("No clock set...\n");
         goto end;
     }
@@ -191,7 +194,7 @@ static void avr_timer_8b_set_alarm(AVRPeripheralState *t16)
     switch (MODE(t16)) 
     {
         case MODE_NORMAL:
-            /* Normal mode */
+            // Normal mode 
             if (OCRA(t16) < alarm_offset && OCRA(t16) > CNT(t16) &&
                 (t16->imsk & T16_INT_OCA)) 
             {
@@ -200,7 +203,7 @@ static void avr_timer_8b_set_alarm(AVRPeripheralState *t16)
             }
             break;
         case MODE_CTC:
-            /* CTC mode, top = ocra */
+            // CTC mode, top = ocra 
             if (OCRA(t16) < alarm_offset && OCRA(t16) > CNT(t16)) {
                 alarm_offset = OCRA(t16);
                 next_interrupt = INTERRUPT_COMPA;
@@ -236,7 +239,7 @@ static void avr_timer_8b_set_alarm(AVRPeripheralState *t16)
     timer_mod(t16->timer, alarm_ns);
 
 end:
-    return;
+    return;*/
 }
 
 static inline void avr_timer_8b_recalc_reset_time(AVRPeripheralState *t16)
@@ -308,9 +311,9 @@ static void avr_timer_8b_write(void *opaque, hwaddr addr, uint64_t value,
     switch (addr) 
     {
     case 0:     // CRA
-        dprintf("Wrote something to OCRA\n");
         last_cra = t16->cra;
         t16->cra = val8;
+        //printf("Wrote something to TCCRRnA = %d\n", t16->cra);
         if (t16->cra & 0b11110000) 
         {
             printf("output compare pins unsupported\n");
@@ -387,13 +390,13 @@ static void avr_timer_8b_write_imsk(void *opaque, hwaddr addr, uint64_t value,
         return;
     }
     t16->imsk = (uint8_t)value;
-    //printf("Write imsk done %d\n", t16->imsk);
+    //dprintf("Write imsk done %d\n", t16->imsk);
 }
 
 static void avr_timer_8b_write_ifr(void *opaque, hwaddr addr, uint64_t value,
                                 unsigned int size)
 {
-    //printf("Write ifr\n");
+    dprintf("Write IFR = %ld\n", value);
     assert(size == 1);
     AVRPeripheralState *t16 = opaque;
     if (addr != 0) 
@@ -404,6 +407,7 @@ static void avr_timer_8b_write_ifr(void *opaque, hwaddr addr, uint64_t value,
     t16->ifr = (uint8_t)value;
 }
 
+// TODO: Add phase correct PWM
 static uint32_t avr_timer_8b_serialize(void * opaque, PinID pin, uint8_t * pData)
 {
     AVRPeripheralState *t8 = opaque;
@@ -525,18 +529,113 @@ static inline int64_t avr_timer_8b_ns_to_ticks(AVRPeripheralState *t16, int64_t 
 }
 
 //
-static void avr_timer_8b_update_cnt(AVRPeripheralState *t16)
+/*static void avr_timer_8b_update_cnt(AVRPeripheralState *t16)
 {
     uint16_t cnt;
     cnt = avr_timer_8b_ns_to_ticks(t16, qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) -
                                        t16->reset_time_ns);
     t16->cnt = (uint8_t)(cnt & 0xff);
+}*/
+
+
+static void avr_timer_8b_increment(void *opaque)
+{
+    //printf("ICREMENTING\n");
+    AVRPeripheralState *t = opaque;
+    uint8_t clksrc = CLKSRC(t);
+    if(clksrc == T16_CLKSRC_STOPPED)
+        return;
+
+    //printf("OK, es passiert was...\n");
+
+    switch(clksrc)
+    {
+        case T16_CLKSRC_DIV1:
+            t->cnt++;
+            break;
+
+        case T16_CLKSRC_DIV8:
+            t->prescale_count++;
+            if(t->prescale_count == 8)
+            {
+                t->cnt++;
+                t->prescale_count = 0;
+            }
+            break;
+
+        case T16_CLKSRC_DIV64:
+            t->prescale_count++;
+            if(t->prescale_count == 64)
+            {
+                t->cnt++;
+                t->prescale_count = 0;
+            }
+            break;
+
+        case T16_CLKSRC_DIV256:
+            t->prescale_count++;
+            if(t->prescale_count == 256)
+            {
+                t->cnt++;
+                t->prescale_count = 0;
+            }
+            break;
+
+        case T16_CLKSRC_DIV1024:
+            t->prescale_count++;
+            if(t->prescale_count == 1024)
+            {
+                t->cnt++;
+                dprintf("Counter set to %d\n", t->cnt);
+                t->prescale_count = 0;
+            }
+            break;
+
+        default:
+            printf("ERROR: Not supported timer clock source chosen!");
+    }
+
+    //printf("New counter: %d. IFR = %d\n", t->cnt, t->ifr);
+
+    if(t->cnt == 0)
+    {
+        if(t->imsk & T16_INT_TOV)
+            qemu_set_irq(t->ovf_irq, 1);
+
+        t->ifr |= T16_INT_TOV;
+    }
+
+    if (t->cnt == t->ocra) 
+    {
+        dprintf("Set Compare flag...\n");
+        t->ifr |= T16_INT_OCA;
+        if(t->imsk & T16_INT_OCA)
+        {
+            dprintf("Set Compa irq\n");
+            qemu_set_irq(t->compa_irq, 1);
+        }
+
+        //printf("Mode = %d\n", MODE(t));
+        if(MODE(t) == MODE_CTC || MODE(t) == MODE_FAST_PWM2)
+        {
+            t->cnt = 0;
+            dprintf("Counter set to 0\n");
+        }
+    }
+
+    if (t->imsk & T16_INT_OCB && t->cnt == t->ocrb) 
+    {
+        dprintf("Set compb irq\n");
+        t->ifr |= T16_INT_OCB;
+        qemu_set_irq(t->compb_irq, 1);
+    }
+
 }
 
 //
-static void avr_timer_8b_interrupt(void *opaque)
+/*static void avr_timer_8b_interrupt(void *opaque)
 {
-    //printf("Der interrupt ballert\n");
+    printf("Der interrupt ballert\n");
     AVRPeripheralState *t16 = opaque;
     uint8_t mode = MODE(t16);
 
@@ -584,7 +683,7 @@ static void avr_timer_8b_interrupt(void *opaque)
     }
 
     avr_timer_8b_set_alarm(t16);
-}
+}*/
 
 //
 static void avr_timer_8b_reset(DeviceState *dev)
@@ -696,9 +795,10 @@ static void avr_timer_8b_init(Object *obj)
 
     qdev_init_gpio_in(DEVICE(s), avr_timer_8b_pr, 1);
 
-    s->timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, avr_timer_8b_interrupt, s);
+    //s->timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, avr_timer_8b_interrupt, s);
+    s->counter = counter_new(avr_timer_8b_increment, s);
     s->enabled = true;
-    dprintf("AVR Timer8b object init\n");
+    printf("AVR Timer8b object init\n");
 }
 
 static const TypeInfo avr_timer_8b_info = {

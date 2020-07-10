@@ -4,6 +4,7 @@
 #include "hw/sysbus.h"
 #include "chardev/char-fe.h"
 #include "hw/hw.h"
+#include "qemu/counter.h"
 
 
 #define ID_DIGIO 0
@@ -84,11 +85,16 @@ typedef struct
 
     qemu_irq adc_conv_irq;
 
-    double adc_voltages[NUM_PINS];
+    double adc_voltages[2*NUM_PINS];
+    struct AVRPortState * ADC_Port1;
+    struct AVRPortState * ADC_Port2;
+
+
     /* ADC END */
 
     /* Timer 0 Start */
     QEMUTimer *timer;
+    QEMUCounter_t *counter;
     qemu_irq capt_irq; // only 16b timer
     qemu_irq compa_irq;
     qemu_irq compb_irq;
@@ -126,6 +132,7 @@ typedef struct
     uint8_t last_pwm;
     uint16_t last_ocra;
     uint16_t last_ocrb;
+    uint16_t last_icr;
     uint8_t prev_clk_src;
 
     uint64_t cpu_freq_hz;
@@ -135,6 +142,7 @@ typedef struct
     
     uint8_t next_interrupt;
     PinID Output_C;
+    uint64_t prescale_count;
     /* Timer End */
 
 } AVRPeripheralState;
